@@ -1,0 +1,52 @@
+# Ignore Autotools Output #
+###########################
+autom4te.cache/
+.autotools
+aclocal.m4
+config.guess
+config.h
+config.h.in
+config.h.in~
+config.log
+config.status
+config.sub
+configure
+depcomp
+gtk-doc.make
+libtool
+ltmain.sh
+Makefile
+Makefile.in
+omf.make
+stamp-h1
+xmldocs.make
+
+# Build Output #
+################
+*.o
+*.Po
+*.Plo
+*.la
+*.lo
+*.gmo
+*.pc
+
+# Libtoolize output #
+.libs/
+.deps/
+
+# Specifically generated files #
+colorschemes/
+compile
+configure.ac
+INSTALL
+install-sh
+intltool-extract.in
+intltool-merge.in
+intltool-update.in
+missing
+po/.intltool-merge-cache
+po/Makefile.in.in
+po/POTFILES
+po/stamp-it
+terminal/terminal-config.h
