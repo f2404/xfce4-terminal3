@@ -28,7 +28,7 @@
 #include <string.h>
 #endif
 
-#include <gdk/gdkkeysyms.h>
+#include <gdk/gdkkeysyms-compat.h>
 #include <libxfce4ui/libxfce4ui.h>
 
 #include <terminal/terminal-util.h>
@@ -294,7 +294,7 @@ terminal_widget_context_menu (TerminalWidget *widget,
     return;
 
   /* check if we have a match */
-  match = vte_terminal_match_check (terminal, x / terminal->char_width, y / terminal->char_height, &tag);
+  match = vte_terminal_match_check (terminal, x / vte_terminal_get_char_width (terminal), y / vte_terminal_get_char_height (terminal), &tag);
   if (G_UNLIKELY (match != NULL))
     {
       /* prepend a separator to the menu if it does not already contain one */
@@ -406,8 +406,8 @@ terminal_widget_button_press_event (GtkWidget       *widget,
     {
       /* middle-clicking on an URI fires the responsible application */
       match = vte_terminal_match_check (VTE_TERMINAL (widget),
-                                        event->x / VTE_TERMINAL (widget)->char_width,
-                                        event->y / VTE_TERMINAL (widget)->char_height,
+                                        event->x / vte_terminal_get_char_width (VTE_TERMINAL (widget)),
+                                        event->y / vte_terminal_get_char_height (VTE_TERMINAL (widget)),
                                         &tag);
       if (G_UNLIKELY (match != NULL))
         {
@@ -480,32 +480,32 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
       break;
 
     case TARGET_TEXT_PLAIN:
-      if (selection_data->format != 8 || selection_data->length == 0)
+      if (gtk_selection_data_get_format (selection_data) != 8 || gtk_selection_data_get_length (selection_data) == 0)
         {
           g_printerr (_("Unable to drop selection of type text/plain to terminal: Wrong format (%d) or length (%d)\n"),
-                      selection_data->format, selection_data->length);
+                      gtk_selection_data_get_format (selection_data), gtk_selection_data_get_length (selection_data));
         }
       else
         {
           vte_terminal_feed_child (VTE_TERMINAL (widget),
-                                   (const gchar *) selection_data->data,
-                                   selection_data->length);
+                                   (const gchar *) gtk_selection_data_get_data (selection_data),
+                                   gtk_selection_data_get_length (selection_data));
         }
       break;
 
     case TARGET_MOZ_URL:
-      if (selection_data->format != 8
-          || selection_data->length == 0
-          || (selection_data->length % 2) != 0)
+      if (gtk_selection_data_get_format (selection_data) != 8
+          || gtk_selection_data_get_length (selection_data) == 0
+          || (gtk_selection_data_get_length (selection_data) % 2) != 0)
         {
           g_printerr (_("Unable to drop Mozilla URL on terminal: Wrong format (%d) or length (%d)\n"),
-                      selection_data->format, selection_data->length);
+                      gtk_selection_data_get_format (selection_data), gtk_selection_data_get_length (selection_data));
         }
       else
         {
           str = g_string_new (NULL);
-          ucs = (const guint16 *) selection_data->data;
-          for (n = 0; n < selection_data->length / 2 && ucs[n] != '\n'; ++n)
+          ucs = (const guint16 *) gtk_selection_data_get_data (selection_data);
+          for (n = 0; n < gtk_selection_data_get_length (selection_data) / 2 && ucs[n] != '\n'; ++n)
             g_string_append_unichar (str, (gunichar) ucs[n]);
           filename = g_filename_from_uri (str->str, NULL, NULL);
           if (filename != NULL)
@@ -522,15 +522,15 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
       break;
 
     case TARGET_URI_LIST:
-      if (selection_data->format != 8 || selection_data->length == 0)
+      if (gtk_selection_data_get_format (selection_data) != 8 || gtk_selection_data_get_length (selection_data) == 0)
         {
           g_printerr (_("Unable to drop URI list on terminal: Wrong format (%d) or length (%d)\n"),
-                      selection_data->format, selection_data->length);
+                      gtk_selection_data_get_format (selection_data), gtk_selection_data_get_length (selection_data));
         }
       else
         {
           /* split the text/uri-list */
-          text = g_strndup ((const gchar *) selection_data->data, selection_data->length);
+          text = g_strndup ((const gchar *) gtk_selection_data_get_data (selection_data), gtk_selection_data_get_length (selection_data));
           uris = g_uri_list_extract_uris (text);
           g_free (text);
 
@@ -567,17 +567,18 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
       break;
 
     case TARGET_APPLICATION_X_COLOR:
-      if (selection_data->format != 16 || selection_data->length != 8)
+      if (gtk_selection_data_get_format (selection_data) != 16 || gtk_selection_data_get_length (selection_data) != 8)
         {
           g_printerr (_("Received invalid color data: Wrong format (%d) or length (%d)\n"),
-                      selection_data->format, selection_data->length);
+                      gtk_selection_data_get_format (selection_data), gtk_selection_data_get_length (selection_data));
         }
       else
         {
           /* get the color from the selection data (ignoring the alpha setting) */
-          color.red = ((guint16 *) selection_data->data)[0];
-          color.green = ((guint16 *) selection_data->data)[1];
-          color.blue = ((guint16 *) selection_data->data)[2];
+          const guchar *data = gtk_selection_data_get_data (selection_data);
+          color.red = ((guint16 *) data)[0];
+          color.green = ((guint16 *) data)[1];
+          color.blue = ((guint16 *) data)[2];
 
           /* prepare the value */
           g_value_init (&value, GDK_TYPE_COLOR);
@@ -616,7 +617,8 @@ static gboolean
 terminal_widget_key_press_event (GtkWidget    *widget,
                                  GdkEventKey  *event)
 {
-  GtkAdjustment *adjustment = VTE_TERMINAL (widget)->adjustment;
+  // TODO: try to use gtk_scrollable_get_vadjustment()
+  GtkAdjustment *adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (widget));
   gboolean       scrolling_single_line;
   gboolean       shortcuts_no_menukey;
   gdouble        value;
@@ -642,13 +644,13 @@ terminal_widget_key_press_event (GtkWidget    *widget,
       /* scroll up one line with "<Shift>Up" */
       if ((event->state & GDK_SHIFT_MASK) != 0 && (event->keyval == GDK_Up || event->keyval == GDK_KP_Up))
         {
-          gtk_adjustment_set_value (adjustment, adjustment->value - 1);
+          gtk_adjustment_set_value (adjustment, gtk_adjustment_get_value (adjustment) - 1);
           return TRUE;
         }
       /* scroll down one line with "<Shift>Down" */
       else if ((event->state & GDK_SHIFT_MASK) != 0 && (event->keyval == GDK_Down || event->keyval == GDK_KP_Down))
         {
-          value = MIN (adjustment->value + 1, adjustment->upper - adjustment->page_size);
+          value = MIN (gtk_adjustment_get_value (adjustment) + 1, gtk_adjustment_get_upper (adjustment) - gtk_adjustment_get_page_size (adjustment));
           gtk_adjustment_set_value (adjustment, value);
           return TRUE;
         }
