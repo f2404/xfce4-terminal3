@@ -441,7 +441,8 @@ terminal_screen_realize (GtkWidget *widget)
   (*GTK_WIDGET_CLASS (terminal_screen_parent_class)->realize) (widget);
 
   /* make sure the TerminalWidget is realized as well */
-  if (!GTK_WIDGET_REALIZED (TERMINAL_SCREEN (widget)->terminal))
+  //if (!GTK_WIDGET_REALIZED (TERMINAL_SCREEN (widget)->terminal))
+  if (!gtk_widget_get_realized (TERMINAL_SCREEN (widget)->terminal))
     gtk_widget_realize (TERMINAL_SCREEN (widget)->terminal);
 
   /* connect to the "composited-changed" signal */
@@ -738,7 +739,8 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
 
   /* determine the toplevel widget */
   toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
-  if (toplevel != NULL && GTK_WIDGET_REALIZED (toplevel))
+  //if (toplevel != NULL && GTK_WIDGET_REALIZED (toplevel))
+  if (toplevel != NULL && gtk_widget_get_realized (toplevel))
     {
 #ifdef GDK_WINDOWING_X11
       result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) GDK_WINDOW_XWINDOW (gtk_widget_get_window (toplevel)));
@@ -1711,8 +1713,10 @@ terminal_screen_set_window_geometry_hints (TerminalScreen *screen,
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
-  terminal_return_if_fail (GTK_WIDGET_REALIZED (screen));
-  terminal_return_if_fail (GTK_WIDGET_REALIZED (window));
+  //terminal_return_if_fail (GTK_WIDGET_REALIZED (screen));
+  //terminal_return_if_fail (GTK_WIDGET_REALIZED (window));
+  terminal_return_if_fail (gtk_widget_get_realized (screen));
+  terminal_return_if_fail (gtk_widget_get_realized (window));
 
   terminal_screen_get_geometry (screen,
                                 &char_width, &char_height,
