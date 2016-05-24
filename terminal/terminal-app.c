@@ -36,6 +36,7 @@
 #endif
 
 #include <gdk/gdkkeysyms.h>
+#include <gdk/gdkkeysyms-compat.h>
 
 #include <terminal/terminal-app.h>
 #include <terminal/terminal-config.h>

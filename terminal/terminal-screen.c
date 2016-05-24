@@ -281,7 +281,8 @@ terminal_screen_init (TerminalScreen *screen)
       G_CALLBACK (terminal_screen_vte_resize_window), screen);
   gtk_box_pack_start (GTK_BOX (screen), screen->terminal, TRUE, TRUE, 0);
 
-  screen->scrollbar = gtk_vscrollbar_new (VTE_TERMINAL (screen->terminal)->adjustment);
+  // TODO: use NULL for adjustment
+  screen->scrollbar = gtk_vscrollbar_new (NULL);
   gtk_box_pack_start (GTK_BOX (screen), screen->scrollbar, FALSE, FALSE, 0);
   g_signal_connect_after (G_OBJECT (screen->scrollbar), "button-press-event", G_CALLBACK (gtk_true), NULL);
   gtk_widget_show (screen->scrollbar);
@@ -387,7 +388,8 @@ terminal_screen_get_property (GObject          *object,
             }
           else if (G_LIKELY (screen->terminal != NULL))
             {
-              title = VTE_TERMINAL (screen->terminal)->window_title;
+              //title = VTE_TERMINAL (screen->terminal)->window_title;
+              title = vte_terminal_get_window_title (VTE_TERMINAL (screen->terminal));
             }
 
           /* TRANSLATORS: title for the tab/window used when all other
@@ -676,7 +678,8 @@ terminal_screen_parse_title (TerminalScreen *screen,
 
         case 'w':
           /* window title from vte */
-          vte_title = VTE_TERMINAL (screen->terminal)->window_title;
+          //vte_title = VTE_TERMINAL (screen->terminal)->window_title;
+          vte_title = vte_terminal_get_window_title (VTE_TERMINAL (screen->terminal));
           if (G_UNLIKELY (vte_title == NULL))
             vte_title = _("Untitled");
           g_string_append (string, vte_title);
@@ -738,7 +741,7 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
   if (toplevel != NULL && GTK_WIDGET_REALIZED (toplevel))
     {
 #ifdef GDK_WINDOWING_X11
-      result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) GDK_WINDOW_XWINDOW (toplevel->window));
+      result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) GDK_WINDOW_XWINDOW (gtk_widget_get_window (toplevel)));
 #endif
 
       /* determine the DISPLAY value for the command */
@@ -778,7 +781,7 @@ terminal_screen_update_background (TerminalScreen *screen)
 
 
 
-static VteTerminalEraseBinding
+static VteEraseBinding
 terminal_screen_binding_vte (TerminalEraseBinding binding)
 {
   switch (binding)
@@ -837,7 +840,8 @@ terminal_screen_update_encoding (TerminalScreen *screen)
   gchar *encoding;
 
   g_object_get (G_OBJECT (screen->preferences), "encoding", &encoding, NULL);
-  vte_terminal_set_encoding (VTE_TERMINAL (screen->terminal), encoding);
+  // TODO: do not use return value and pass **GError as NULL
+  vte_terminal_set_encoding (VTE_TERMINAL (screen->terminal), encoding, NULL);
   g_free (encoding);
 }
 
@@ -1039,7 +1043,7 @@ static void
 terminal_screen_update_misc_cursor_shape (TerminalScreen *screen)
 {
   TerminalCursorShape    val;
-  VteTerminalCursorShape shape = VTE_CURSOR_SHAPE_BLOCK;
+  VteCursorShape shape = VTE_CURSOR_SHAPE_BLOCK;
 
   g_object_get (G_OBJECT (screen->preferences), "misc-cursor-shape", &val, NULL);
 
@@ -1251,7 +1255,7 @@ terminal_screen_vte_resize_window (VteTerminal    *terminal,
   /* don't do anything if the window is already fullscreen/maximized */
   toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
   if (!gtk_widget_get_realized (toplevel)
-      || (gdk_window_get_state (toplevel->window)
+      || (gdk_window_get_state (gtk_widget_get_window (toplevel))
           & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_FULLSCREEN)) != 0)
     return;
 
@@ -1261,8 +1265,10 @@ terminal_screen_vte_resize_window (VteTerminal    *terminal,
   grid_height = (height - ypad) / char_height;
 
   /* leave if there is nothing to resize */
-  if (terminal->column_count == grid_width
-      && terminal->row_count == grid_height)
+  //if (terminal->column_count == grid_width
+  //    && terminal->row_count == grid_height)
+    if (vte_terminal_get_column_count (terminal) == grid_width
+        && vte_terminal_get_row_count (terminal) == grid_height)
     return;
 
   /* set the terminal size and resize the window if it is active */
@@ -1388,8 +1394,10 @@ terminal_screen_timer_background (gpointer user_data)
     {
       loader = terminal_image_loader_get ();
       image = terminal_image_loader_load (loader,
-                                          screen->terminal->allocation.width,
-                                          screen->terminal->allocation.height);
+                                          //screen->terminal->allocation.width,
+                                          //screen->terminal->allocation.height);
+                                          gtk_widget_get_allocated_width (screen->terminal),
+                                          gtk_widget_get_allocated_height (screen->terminal));
       vte_terminal_set_background_image (VTE_TERMINAL (screen->terminal), image);
       if (G_LIKELY (image != NULL))
         g_object_unref (G_OBJECT (image));
@@ -1807,7 +1815,8 @@ terminal_screen_get_title (TerminalScreen *screen)
   if (G_UNLIKELY (screen->custom_title != NULL))
     return terminal_screen_parse_title (screen, screen->custom_title);
 
-  vte_title = VTE_TERMINAL (screen->terminal)->window_title;
+  //vte_title = VTE_TERMINAL (screen->terminal)->window_title;
+  vte_title = vte_terminal_get_window_title (VTE_TERMINAL (screen->terminal));
   g_object_get (G_OBJECT (screen->preferences),
                 "title-mode", &mode,
                 "title-initial", &tmp,
@@ -2050,7 +2059,8 @@ terminal_screen_reset (TerminalScreen *screen,
   vte_terminal_reset (VTE_TERMINAL (screen->terminal), TRUE, clear);
 
   if (clear)
-    vte_terminal_search_set_gregex (VTE_TERMINAL (screen->terminal), NULL);
+    // TODO: setting flags to 0 for now
+    vte_terminal_search_set_gregex (VTE_TERMINAL (screen->terminal), NULL, 0);
 }
 
 
@@ -2166,7 +2176,9 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
   button = gtk_button_new ();
   gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
   gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
-  GTK_WIDGET_UNSET_FLAGS (button, GTK_CAN_DEFAULT | GTK_CAN_FOCUS);
+  //GTK_WIDGET_UNSET_FLAGS (button, GTK_CAN_DEFAULT | GTK_CAN_FOCUS);
+  gtk_widget_set_can_default (button, FALSE);
+  gtk_widget_set_can_focus (button, FALSE);
   gtk_widget_set_tooltip_text (button, _("Close this tab"));
   gtk_container_add (GTK_CONTAINER (align), button);
   g_signal_connect_swapped (G_OBJECT (button), "clicked",
@@ -2213,7 +2225,8 @@ terminal_screen_set_encoding (TerminalScreen *screen,
                               const gchar    *charset)
 {
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
-  vte_terminal_set_encoding (VTE_TERMINAL (screen->terminal), charset);
+  // TODO: do not use return value and pass **GError as NULL
+  vte_terminal_set_encoding (VTE_TERMINAL (screen->terminal), charset, NULL);
 }
 
 
@@ -2224,7 +2237,8 @@ terminal_screen_search_set_gregex (TerminalScreen *screen,
                                    gboolean        wrap_around)
 {
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
-  vte_terminal_search_set_gregex (VTE_TERMINAL (screen->terminal), regex);
+  // TODO: setting flags to 0 for now
+  vte_terminal_search_set_gregex (VTE_TERMINAL (screen->terminal), regex, 0);
   vte_terminal_search_set_wrap_around (VTE_TERMINAL (screen->terminal), wrap_around);
 }
 
