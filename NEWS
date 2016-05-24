@@ -1,0 +1,571 @@
+0.6.3
+=====
+- Improve URL matching (bug #7959, bug #9800).
+- Fix encoding menu creation (bug #10395).
+- Added light solarized colorscheme (bug #10286).
+- Fixed wrong foreground color in solarized dark (bug #10285).
+- Fix terminal session restore (bug #9732).
+- Translation updates: Arabic, Bulgarian, Czech, Danish, German,
+  Greek, English (Australia), English (United Kingdom), Spanish
+  (Castilian), Basque, Finnish, French, Hebrew, Croatian, Hungarian,
+  Indonesian, Dutch (Flemish), Occitan (post 1500), Portuguese,
+  Russian, Thai, Turkish, Uyghur, Ukrainian, Chinese (China), Chinese
+  (Hong Kong), Chinese (Taiwan).
+
+
+0.6.2
+=====
+- Autotools updates.
+- Fix toolbars -> toolbar in docs.
+- Check display for the real display, not display.screen.
+- Display checking on drop-down windows (bug #9957).
+- Fix format warning.
+- Only call g_type_init on glib < 2.36.
+- Translation updates: Arabic, Asturian, Belarusian, Bulgarian,
+  Catalan (Valencian), Czech, Danish, German, Greek, English (United
+  Kingdom), Esperanto, Spanish (Castilian), Estonian, Basque, Finnish,
+  French, Galician, Hebrew, Croatian, Hungarian, Indonesian, Icelandic,
+  Italian, Japanese, Kazakh, Korean, Lithuanian, Latvian, Norwegian
+  Bokmal, Dutch (Flemish), Panjabi (Punjabi), Polish, Portuguese,
+  Portuguese (Brazilian), Romanian, Russian, Sinhala, Slovak, Albanian,
+  Serbian, Swedish, Telugu, Turkish, Uyghur, Ukrainian, Urdu, Urdu
+  (Pakistan), Vietnamese, Chinese (China), Chinese (Hong Kong), Chinese
+  (Taiwan).
+
+
+0.6.1
+=====
+- Add drop-down window support with --drop-down parameter. This
+  allows xfce4-terminal to start 1 game-console like window.
+- Rename Go menu to Tabs.
+- Load default Alt+N accelerators on first startup.
+- Make single tab accelerator insensitive again.
+- Rename clear scrollbar to reset.
+- Fix crash when showing toolbar 2nd time (bug #9696).
+- Don't check for version and help in parameters parsing.
+- Remove Report Bug menu entry.
+- Hide search dialog on delete to avoid crash.
+- Set minimum tab label size to 10 chars.
+- Make right-click tab menu more functional.
+- Stop activity timeout when destroying a screen.
+- Rename $TERM to emulation and use new preference to avoid
+  migration crashes.
+- Fix the tab re-use option when running from shortcut.
+- Allow underscore and + in email address (bug #9392).
+- Use new GPL license address (bug #9697).
+- Allow setting the geometry in the preferences.
+- Translation updates: Spanish (Castilian), French, Croatian,
+  Italian, Japanese, Kazakh, Dutch (Flemish), Polish, Portuguese,
+  Portuguese (Brazilian), Romanian.
+
+
+0.6.0
+=====
+- Rename the package from Terminal to xfce4-terminal.
+- Don't add mailto when copying to clipboard (bug #7909)
+- Add search dialog.
+- Fix activity handling when resizing the window.
+- Use mid color if activity expired (bug #9686).
+- Improve quit confirm dialog.
+- Add move tab left/right options (bug #5918).
+- Only show terminal in the system category (bug #8693).
+- Don't pre-parse options after -x (bug #9167).
+- Make tabs a fraction smaller.
+- Drop the special handling of the Super key.
+- Depend on libxfce4ui and use its API.
+- Use standard stock icons.
+- Depend on vte 0.28 and exo 0.10.
+- Drop anti-alias preference (deprecated in vte).
+- Add =+@ to the default word-chars.
+- Add encoding support.
+- Use GDBus for dbus communication.
+- Remove toolbar editor.
+- Remove the exo dependency.
+- Remove the custom accelerator code.
+- Bundle palette colors into a single string.
+- Add background color vary option.
+- Add option --color-table.
+- Add support for color presets.
+- Properly set termcap emulation.
+- Another attempt to fix the invalid sizing issues (bug #4728).
+- Use G_ENABLE_DEBUG to enable additional checks (bug #8552).
+- Allow setting the bold color (bug #5987).
+- Use xmllint to strip the glade file.
+- Rename reset option to "Reset Scrollback".
+- Allow re-using of last window with --tab.
+- Improve documentation of --role (bug #8246).
+
+
+0.4.8
+=====
+- Update online documentation location.
+- Make image directory paths relative.
+- Only make go menu action sensitive if tabs > 1 (bug #7595).
+- Use exo preferred directly to open uris (bug #7140).
+- Fix typo in German translation (bug #6654).
+- Add 'Select All' shortcut and menu item (bug #6588).
+- Fix transparency slider in Gtk+ 2.24.5.
+- Translation updates (pt, de, zh_CN, da, nl, sk, nb, gl, eu).
+
+
+0.4.7
+=====
+- Improve --version strings.
+- Avoid racing on the size-changed signal (bug #6921).
+- Protect against NULL borders (bug #7253).
+- Translation updates (ca, da, de, el, es, fi, fr, id, it, ja, kk,
+  pl, pt, ro, ru, sv, tr, uk, zh_CN)
+- Manual translation updates (ru).
+
+
+0.4.6
+=====
+- Parse the tab title if dynamic title is hidden.
+- Abort doc generation if validating the xml file fails.
+- Plug small memory leak and fix some compiler warnings.
+- Recognize sftp in urls.
+- Work around deprecated API in vte 0.26.
+- Unbind title dialog binding before destroy.
+- Protect against NULL border values (bug #7120).
+- Set colormap on window init.
+- Translation updates (cs, de, el, en_GB, es, eu, fr, gl, hr, id, ja,
+  kk, nb, nl, pl, pt, ro, ru, ug, uk).
+- Manual translation updates (el, es, fr, gl, hr, ja, pt, sv, ug).
+
+
+0.4.5
+=====
+- Improve support for --program-transform-name.
+- Don't set the locale twice on a normal startup.
+- Only install the symlink if the Terminal command exists.
+- Don't set translation domain when libxfce4util is new enough.
+- Use utilities-terminal for the icon name.
+- Add question dialog to view online manual.
+- Abort when compiling with --enable-gen-doc with missing deps.
+- Disconnect bindings before closing the dialog.
+- Improve handling shells (bug #6368).
+- Translation updates (hu, fr, de, da, pt, ca, ru, it, fi, si, kk,
+  cs, uk, zh_CN, es, lv, ja, gl, hr, sk, ug).
+
+
+0.4.4
+=====
+- Move detailed description of the command line options printed by
+  --help to a man-page. The help option now only prints a summery
+  of the available options.
+- Add two missing toolbar tooltips.
+- Add Terminal to the GTK category for the menu spec. Remove
+  deprecated UTF-8 key from the desktop file.
+- Some small code cleanups.
+- Allow : in web links.
+- Translation updates (ru, pt, da, es, ca, eu, zh_CN, gl, ja, nl,
+  cs, id, pt_BR, fi, fr, en_GB, el, sk, it).
+
+
+0.4.3
+=====
+- Make right/middle-click on tabs work when on all tab orientations
+  and when they are not packed as the first widget.
+- Token substitution in the initial title (%#, %d, %D and %w are
+  currently supported. See documentation for more information.
+- Install symlink in install-exec-hook hook (bug #5835).
+- Don't accept accelerators that are not accepted by Gtk (bug #3524).
+- Catch keybindings from previous and next tab when cycling is
+  disabled (bug #3715).
+- Build HTML documentation during make when compiling with
+  --enable-gen-doc and ship the HTML pages in the tarball.
+  See doc/README for more information.
+- Integrate in Gnome's default applications (bug #6020).
+- Handle window-resize requests (bug #6007).
+- Improve handling of invalid colors in the rc file.
+- Split option parsing in 2 stages to speed things up a bit and some
+  related improvement in the D-Bus code.
+- Don't show a warning when no config is found.
+- Only build ChangeLog in dist.
+- Translation updates (ja, lv, ca, ast, zh_CN, it, gl,
+
+
+0.4.2
+=====
+- Fix broken background image when compositing is disabled (bug #5645).
+- Use new xdt-autogen macros.
+- Translation updates (ast, gl, cs, ja, da).
+
+
+0.4.1
+=====
+- Install documentation in @docdir@ (bug #5593).
+- Don't die on dbus exit.
+- Use the initial title in tabs if the dynamic title is set to hidden.
+- Silence the build.
+- Disable mnemonics in GtkSettings (bug #5714).
+- Translation updates (id, nl, ca, es, hu, ast, en_GB, el, gl, nb, pt, da, it).
+
+
+0.4.0
+=====
+- Don't show the set title dialog when double-clicking on the scrollbar.
+- Don't build the menubar when not enabled on startup.
+- Various small code cleanups.
+- Translation updates (cs, eu, ja, kk).
+
+
+0.2.99.1
+========
+- Do not save properties that are the same as the default value (and not
+  hidden) in the rc file. This makes startup a bit faster.
+- Remove vte-title-workaround and show the vte title in the go menu
+  (so without the initial title).
+- Documentation updates.
+
+
+0.2.90
+======
+- Change minimum dependency of VTE to 0.17.1 and GTK+ to 2.14.
+- Use environ variables provided by GLib for better compatibility.
+- Use new VTE api.
+- Don't set contents change on window resize (bug #5443).
+- Fix segfault in special tab configuration (bug #3809).
+- Monitor config files using GIO to avoid polling for file
+  changes (bug #3567).
+- Check for case problems when creating the symlink (bug #4431).
+- Add hidden option to disable middle-click tab close (bug #4403).
+- Property handle the button accelerators in the compose
+  dialog (bug #5288).
+- Convert the preferences dialog into GtkBuilder (bug #2399,
+  bug #2875, and bug #5496).
+- Use stock icons and remove unused icons (bug #5495).
+- Allow editing of shortcuts from the menu (bug #4246).
+- Make the tab close button smaller.
+- Fix compilation problems on Solaris (bug #4581).
+- Update fullscreen action if changed by the wm (bug #5155).
+- Add commandline option to set the window icon (bug #5480).
+- Refactor the usage help so it's easier to understand. Also add
+  the --maximize option.
+- Allow '-character in links (bug #4465).
+- Add hidden option for the cursor shape (bug #4602).
+- Convert preferences dialog in Gtkbuilder and make it fit better
+  inside Xfce using the titled dialog.
+- Fix compiler warnings, code cleanups and improvements.
+- Support for the erase tty key binding, requires vte 0.20.4 (bug #2925).
+- A lot of updated translations.
+
+
+0.2.12
+======
+- Property destroy the go menu item when a terminal screen is closed
+  (bug #5101) so the Alt-[1-9] bindings work as expected.
+
+
+0.2.10
+======
+- Support for Drag and Drop of tabs between Terminal windows was added
+  (Bug #2684).
+- The required version of GTK+ is now 2.10.
+- Change about dialog URL to http://xfce.org/projects/terminal.
+- Add support for a --maximize command line option. Patch by Mikel Ward
+  <mikel@mikelward.com>.
+- Updated translations: zh_CN, el, gl, de, pl, en_GB, ja, pt_BR,
+  ca, es, id, cs, eu, sv, da, nb_NO, sq, be, tr, fi, et, ku, he, pt_PT,
+  fr.
+
+
+0.2.8
+=====
+- Close tabs with middle mouse click (Bug #3380).
+- Security fix: URL handling allowed remote shell command execution
+  (Bug #3383).
+- The preferred application handling was completely removed from Terminal.
+  Instead the Xfce Preferred Applications are invoked directly now. The
+  URL highlighting can still be disabled via the hidden option
+  "MiscHighlightUrls" (see the documentation for details).
+- Test for support of -Wall, -Werror and -errwarn=%all (Bug #2920).
+- Add support to disable the single line scrolling using Shift-Up/-Down
+  (Bug #1927).
+- Embed the user interface description into the binary (Bug #3522).
+- Set $WINDOWID properly (Bug #3341).
+- Add support to close tabs with middle click (Bug #3380).
+- Updated translations: Alexander Nyakhaychyk (be), Pau Rul-lan Ferragut (ca),
+                        Benedikt Meurer (de), Jeff Bailes (en_GB), Sylvain
+                        Vedrenne (eo), Jari Rahkonen (fi), Maximilian Schleiss
+                        (fr), Daichi Kawahata (ja), ByungHyun Choi (ko), Mişu
+                        Moldovan (ro), Eren Turkay (tr)
+- New translations: Mohamed Magdy (ar), Rihards Prieditis (lv), Terje Uriansrud
+                    (nb_NO), Nuno Miguel (pt_PT), Besnik Bleta (sq), ﻢﺤﻣﺩ ﻊﻠﻳ
+                    ﺎﻠﻤﻜﻳ (ur)
+
+
+0.2.6
+=====
+- Add support for real transparency with GTK+ 2.10 and a composition manager
+  (Bug #2671).
+- Do not crash when you the first tab is detached and MiscAlwaysTabs is set
+  to TRUE (Bug #2686).
+- Add support to reorder tabs with GTK+ 2.10 (Bug #1974).
+- Fix installation on case insensitive file systems (Bug #2526).
+- Updated translations: Michal Varady (cs), Benedikt Meurer (de), Stavros
+                        Giannouris (el), Piarres Beobide (eu), Jari Rahkonen
+                        (fi), Maximilian Schleiss (fr), Szymon Kałasz (pl),
+                        Andrey Fedoseev (ru).
+- New translations: Alexander Nyakhaychyk (be), Amanpreet Singh Alam (pa).
+
+
+0.2.5.9svn
+==========
+- Add support for real transparency with GTK+ 2.10 and a compositing manager,
+  i.e. the one built into xfwm4 (Bug #2671).
+
+
+0.2.5.8rc2
+==========
+- Add a new "Paste Selection" action to the "Edit" menu, which pastes the
+  contents of the PRIMARY selection (#2242).
+- Accept drops from the Thunar path bar (#2284).
+- Fix installation in Win32 platforms (#2433).
+- Fix incorrect english in usage text (#2381).
+- Fix incorrectly handled SIGPIPE (#2349).
+- Updated translations: Michal Varady (cs), Benedikt Meurer (de), Jarbas Araujo
+                        Jr. (eo), Piarres Beobide (eu), Jari Rahkonen (fi),
+                        Maximilian Schleiss (fr), Szymon Kałasz (pl), Adriano
+                        Winter Bess (pt_BR), Andrey Fedoseev (ru)
+- New translations: Tenzin Dendup (dz)
+
+
+0.2.5.6rc1
+==========
+- It is now possible to assign a keyboard shortcut to open the preferred
+  application dialog for people that disable the menu bar.
+- Terminal now allows you to choose different colors for the cursor and the
+  text selection color.
+- A new command line option --hold was added, which prevents Terminal from
+  closing tabs when the child command exits.
+- The MiscCycleTabs option is now enabled by default.
+- A new hidden option MiscInheritGeometry was added, which controls whether
+  new windows will inherit the geometry of the parent window.
+- A new hidden option MiscAlwaysShowTabs was added, which controls whether the
+  tabs should always be shown no matter how many tabs are present in a window.
+- A new hidden option MiscTabPosition was added, which specifies the position
+  where the tabs should be placed.
+- Parse file:-URIs dropped to a Terminal window properly and format them so
+  they can be used in shell commands directly (Bug #2076).
+- Use the thumbnail preview support for the background image selection that
+  was added with exo 0.3.1.10rc1 (Bug #2069).
+- Add '~' to the default word chars.
+- The dependency on libxfcegui4 is gone. The required Gtk+ version was bumped
+  to 2.6.0.
+- The user manual is now available in English and Japanese.
+- Updated translations: Jaime Buffery (es), Jari Rahkonen (fi), Daichi
+  Kawahata (ja), Hydonsingore Sie (zh_TW)
+- New translations: Pau Rullan Ferragut (ca), Michal Várady (cs), Stavros
+  Giannouris (el), Piarres Beobide Egaña (eu), Antono Vasiljev (eo), Leandro
+  Regueiro (gl), Szervác Attila (hu), Vittorio Palmisano (it), Kibum Han (ko),
+  Mantas Zapolskas (lt), Szymon Kałasz (pl), Adriano Winter Bess and Joao
+  Pedrosa (pt_BR), Andrey Fedoseev and Anthony Ivanoff (ru), Roman Moravcik
+  (sk), Jens Hagerman (sv), Maxim V. Dziumanenko (uk), Phan Vĩnh Thịnh (vi)
+
+
+0.2.4
+=====
+- You can now open hyperlinks (and email addresses) from within Terminal by
+  either middle-clicking the hyperlink or choosing the appropriate item from
+  the right-click menu. This feature is optional and can be disabled.
+- When terminal background was set to "background image" and the user opened
+  a new terminal tab, the background image was not always set properly. This
+  is fixed now.
+- A new hidden option "MiscCycleTabs" was added to allow users to circulate
+  through terminal tabs, similar to what Mozilla Firefox does by default.
+- Another new hidden option "MiscTabCloseButtons" was added to allow users to
+  disable the close buttons in the terminal tab headers.
+- The keyboard shortcuts to go to a specific terminal tab now work properly
+  even if the main menu bar is hidden.
+- Added the possibility to let Vte auto-detect the backspace and delete bindings
+  for the terminal.
+- Changed default paste shortcut to Shift+Ctrl+V.
+- The configuration file is watched for changes now and will be reread
+  automatically. You no longer need to restart Terminal if you manually edited
+  the terminalrc file.
+- Terminal now supports D-BUS 0.23 (and earlier) and D-BUS 0.31 (and later),
+  while the dependency on D-BUS is optional.
+- The output of "Terminal --help" now properly shows the translation (if any)
+  instead of the english text.
+- Various usability improvements.
+- Updated translations: os-cillation (de), Stephane Roy (fr), Jasper Huijsmans
+  (nl).
+- New translations: Jari Rahkonen (fi), Yuval Tanny (he), Daichi Kawahata (ja),
+  Anthony Ivanoff (ru), Army Gu (zh_CN)
+- The documentation has been updated.
+
+
+0.2.2
+=====
+- A command line option --fullscreen was added to put a new window into
+  fullscreen mode automatically.
+- Users can open only one preferences dialog per terminal window now.
+- The shortcut for the commandline option --title is now -T, because that
+  seems to be common among terminal emulators. -t is still supported for
+  compatbility with gnome-terminal, but may be removed in the future.
+- Remote displays are supported properly now. But multi-screen mode will only
+  work with solid background until the Vte guys fix the multi-screen issue
+  (see http://bugzilla.gnome.org/show_bug.cgi?id=160782).
+- Modifiers like <Mod2> or <Lock> are now stripped off when using the
+  shortcut editor, since it turned out that they don't work properly with
+  some X setups.
+- Pressing Shift<F10> also pops up the right-click menu now.
+- Fixed a bug where the size was not always properly set when opening a
+  new terminal tab.
+- A new toplevel menu "Go" was added, which includes "Prev Tab", "Next Tab"
+  and a list of currently active tabs. People who use a customized Terminal.ui
+  will need to sync their copy with the default Terminal.ui file in order
+  to see this change.
+- New shortcuts have been added to allow fast switching to the first 9
+  terminal tabs; the shortcuts default to Alt+#.
+- The terminal tab close button is now properly rendered with Gtk+ themes
+  that are based on the "pixmap" engine.
+- The "Use colors from system theme" option was removed, as it was mostly
+  unusued and its really not a required option after all (I don't know any
+  Gtk+ theme that specifies colors for VteTerminal anyways).
+- You can now scroll up/down by one line using Shift+Up and Shift+Down, in
+  the same manner as in aterm.
+- A new option "Allow bold text" was added, to control whether or not
+  Terminal will attempt to draw bold text by repainting text with a
+  different offset.
+- Added the possibility to detach tabs from a given Terminal window and
+  reopen that tab in a new window. This functionality is available from
+  a right-click menu that was added to the tab title widgets.
+- The about dialog now uses the Terminal application icon instead of the
+  terminal-general stock icon.
+- The terminal service now checks the user id of callers and if the
+  user ids doesn't match the caller will automatically run in its
+  own Terminal instance. This allows users to run Terminal with different
+  users without having to supply the --disable-server option, e.g. running
+  "sudo Terminal" (please note that this is not recommended!).
+- Several other bugs and glitches have been fixed.
+- New translations: Dwayne Bailey (en_GB), Hydonsingore Sie (zh_TW),
+  Jaime Buffery (es)
+- Updated translations: os-cillation (de), Jasper Huijsmans (nl_NL)
+- The documentation has been updated.
+
+
+0.2.0
+=====
+- The user interface was reworked to comply with the GNOME Human Interface
+  Guidelines (HIG).
+- Terminal can now use the foreground and background color from the selected
+  Gtk+ theme.
+- Toolbars can now be edited by right-clicking the appriorate toolbar.
+- The preferences dialog and the title dialog are now accessible.
+- Avoid flickering when opening a new terminal.
+- The terminal background is now set up before the terminal is mapped on
+  screen.
+- Menu access keys can now be disabled, which allows passing key combinations
+  such as Alt+f to the application running inside the terminal.
+- Font-antialiasing can now be turned off for the terminal font rendering,
+  which impressively speeds up Terminal performance and reduces system
+  load on slow systems.
+- Optional support for startup notification was added.
+- A bunch of new command line options were added, which allow the user
+  to control every aspect of a terminal window from the command line and
+  its also possible to open multiple windows and multiple tabs from the
+  command line.
+- The terminal title can now be changed by double-clicking the terminal
+  tab header.
+- Multi-screen and multi-display configurations are now properly supported
+  by Terminal.
+- A bug in the backspace binding preference was fixed, which caused Terminal
+  to use Control+H if the user configured ASCII DEL and vice versa.
+- Support for session management was added (using X11R5 WM_SAVE_YOURSELF).
+- Added a confirmation dialog, that pops up when a window with more than
+  one tab is about to be closed. The confirmation can be disabled from
+  the dialog.
+- Icons are now built into the Terminal binary to avoid the 100-500ms
+  increase in startup time when using the icon lookup functions in
+  libxfcegui4.
+- If an application running inside the terminal supports using the
+  mouse (like mc for example), Terminal automatically disables the
+  right-click menu and forwards all button clicks to the application
+  instead. Hold down shift while pressing the right mouse button to
+  get a right-click menu in this situation.
+- Several bugfixes and improvements have been integrated into Terminal
+  (in order to reduce code-size and startup time).
+- The D-BUS interface was changed to include a version number and to
+  pass the argument vector instead of the parsed options to the
+  Terminal service.
+- The online documentation and the manual page have been updated.
+
+
+0.1.10
+======
+- The configure option --enable-final is now on by default for plattforms
+  that support it.
+- A bunch of new icons was imported.
+- Terminal now includes an editable toolbar, which is disabled by default.
+- The background image can now be displayed in different styles (Tiled,
+  Scaled, Stretched and Centered). In addition the background image chooser
+  dialog now features a preview widget and an `Image files' filter.
+- Various resize-related bugs have been addressed and fixed.
+- Terminal now defaults to current working directory if no --working-directory
+  command line switch was specified.
+- The documentation was updated and a manual page for Terminal was added.
+
+
+0.1.9
+=====
+- The configure option --enable-final now enables linker optimizations for
+  plattforms that support it (recent GNU binutils required).
+- The UI description is now installed as a separate file, to allow users to
+  customize their menus rudimentarily.
+- The documentation was updated.
+
+
+0.1.8
+=====
+- Background darkness setting is now restored correctly.
+- Open Terminal now always openes a new Terminal window instead of
+  randomly opening a new tab
+- French and Dutch translations are included now, thanks to Jasper
+  Huijsmans <jasper@xfce.org> for reviewing and fixing the dutch
+  translation.
+- A FAQ section was added to the documentation.
+
+
+0.1.7
+=====
+- New icons for the preferences dialog by Francois Le
+  Clainche <fleclainche@wanadoo.fr>, available as PNG and
+  scalable images.
+- Online documentation updated. All of Terminal is now documented.
+- The user can now specify the setting of the $TERM environment
+  variable on new terminals.
+- The color palette used by the terminal applications is configurable
+  now. It defaults to the Linux console color palette.
+- The configured background is also used for tinting the terminal background
+  in image and transparent mode.
+
+
+0.1.6
+=====
+- Fixed a bug that made mc appear in black and white only.
+- Added documentation for Terminal, available through the menu Help->Contents
+  and available online at http://www.os-cillation.de/documentation/terminal/
+- The compact mode functionality was split up into 2 options, its now possible
+  to toggle the visibility of the menubar and the window decorations inde-
+  pendently.
+- New icons for Open Terminal and Open Tab, designed by Francois Le
+  Clainche <fleclainche@wanadoo.fr>.
+- Custom command functionality was removed from Terminal, because it is
+  rather useless, now that Terminal offers -x/--execute command line
+  options.
+- The output of Terminal --help was improved to list all options with
+  descriptions of their functionality.
+- The Preferences dialog was changed to use GtkFrame instead of XfceFramebox
+  to get a smoother look.
+- Translations now work the way they are expect to work. For now, only
+  german translations are available.
+
+
+0.1.5
+=====
+- A keyboard shortcut editor was added.
+- The tab close icon size was decreased.
+- Geometry handling was improved.
+- .desktop and .spec files have been added.
