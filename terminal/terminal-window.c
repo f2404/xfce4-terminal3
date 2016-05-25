@@ -86,11 +86,11 @@ static gboolean        terminal_window_accel_activate                (GtkAccelGr
 static void            terminal_window_update_actions                (TerminalWindow         *window);
 static void            terminal_window_rebuild_tabs_menu             (TerminalWindow         *window);
 static void            terminal_window_notebook_page_switched        (GtkNotebook            *notebook,
-                                                                      GtkNotebookPage        *page,
+                                                                      //GtkNotebookPage        *page,
                                                                       guint                   page_num,
                                                                       TerminalWindow         *window);
 static void            terminal_window_notebook_page_reordered       (GtkNotebook            *notebook,
-                                                                      GtkNotebookPage        *page,
+                                                                      //GtkNotebookPage        *page,
                                                                       guint                   page_num,
                                                                       TerminalWindow         *window);
 static void            terminal_window_notebook_page_added           (GtkNotebook            *notebook,
@@ -290,15 +290,20 @@ terminal_window_init (TerminalWindow *window)
   GtkWidget      *vbox;
   gboolean        always_show_tabs;
   GdkScreen      *screen;
-  GdkColormap    *colormap;
+  // TODO: replace GdkColormap with GdkVisual
+  //GdkColormap    *colormap;
+  GdkVisual *visual;
 
   window->preferences = terminal_preferences_get ();
 
   /* try to set the rgba colormap so vte can use real transparency */
   screen = gtk_window_get_screen (GTK_WINDOW (window));
-  colormap = gdk_screen_get_rgba_colormap (screen);
-  if (colormap != NULL)
-    gtk_widget_set_colormap (GTK_WIDGET (window), colormap);
+  //colormap = gdk_screen_get_rgba_colormap (screen);
+  //if (colormap != NULL)
+  //  gtk_widget_set_colormap (GTK_WIDGET (window), colormap);
+  visual = gdk_screen_get_rgba_visual (screen);
+  if (visual != NULL)
+    gtk_widget_set_visual (GTK_WIDGET (window), visual);
 
   window->action_group = gtk_action_group_new ("terminal-window");
   gtk_action_group_set_translation_domain (window->action_group,
@@ -340,8 +345,9 @@ terminal_window_init (TerminalWindow *window)
   terminal_util_set_style_thinkess (window->notebook, 0);
 
   /* set the notebook group id */
-  gtk_notebook_set_group (GTK_NOTEBOOK (window->notebook),
-                          (gpointer) window_notebook_group);
+  // TODO: replace gtk_notebook_set_group() with gtk_notebook_set_group_name()
+  gtk_notebook_set_group_name (GTK_NOTEBOOK (window->notebook),
+                          (const gchar *) window_notebook_group);
 
   /* signals */
   g_signal_connect (G_OBJECT (window->notebook), "switch-page",
@@ -382,7 +388,9 @@ terminal_window_init (TerminalWindow *window)
 
 #if defined(GDK_WINDOWING_X11)
   /* setup fullscreen mode */
-  if (!gdk_net_wm_supports (gdk_atom_intern ("_NET_WM_STATE_FULLSCREEN", FALSE)))
+  // TODO: replace gdk_net_wm_supports() with gdk_x11_screen_supports_net_wm_hint()
+  //if (!gdk_net_wm_supports (gdk_atom_intern ("_NET_WM_STATE_FULLSCREEN", FALSE)))
+  if (!gdk_x11_screen_supports_net_wm_hint (screen, gdk_atom_intern ("_NET_WM_STATE_FULLSCREEN", FALSE)))
     gtk_action_set_sensitive (window->action_fullscreen, FALSE);
 #endif
 }
@@ -501,11 +509,12 @@ terminal_window_confirm_close (TerminalWindow *window)
 
   dialog = gtk_dialog_new_with_buttons (_("Warning"), GTK_WINDOW (window),
                                         GTK_DIALOG_DESTROY_WITH_PARENT
-                                        | GTK_DIALOG_NO_SEPARATOR
                                         | GTK_DIALOG_MODAL,
+                                        GTK_STOCK_CANCEL,
+                                        GTK_RESPONSE_CANCEL,
                                         NULL);
 
-  gtk_dialog_add_button (GTK_DIALOG (dialog), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
+  //gtk_dialog_add_button (GTK_DIALOG (dialog), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
 
   button = xfce_gtk_button_new_mixed (GTK_STOCK_CLOSE, _("Close T_ab"));
   gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button, GTK_RESPONSE_CLOSE);
@@ -518,7 +527,8 @@ terminal_window_confirm_close (TerminalWindow *window)
 
   hbox = gtk_hbox_new (FALSE, 6);
   gtk_container_set_border_width (GTK_CONTAINER (hbox), 8);
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), hbox, TRUE, TRUE, 0);
+  // TODO: comment out for now
+  //gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), hbox, TRUE, TRUE, 0);
   gtk_widget_show (hbox);
 
   image = gtk_image_new_from_stock (GTK_STOCK_DIALOG_WARNING, GTK_ICON_SIZE_DIALOG);
@@ -784,7 +794,7 @@ terminal_window_rebuild_tabs_menu (TerminalWindow *window)
 
 static void
 terminal_window_notebook_page_switched (GtkNotebook     *notebook,
-                                        GtkNotebookPage *page,
+                                        //GtkNotebookPage *page,
                                         guint            page_num,
                                         TerminalWindow  *window)
 {
@@ -829,7 +839,7 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
 
 static void
 terminal_window_notebook_page_reordered (GtkNotebook     *notebook,
-                                         GtkNotebookPage *page,
+                                         //GtkNotebookPage *page,
                                          guint            page_num,
                                          TerminalWindow  *window)
 {
@@ -938,11 +948,11 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
 
 
 
-#define EVENT_IN_ALLOCATION(event_x,event_y,widget) \
-  ((event_x) >= (widget)->allocation.x  \
-  && (event_x) <= (widget)->allocation.x + (widget)->allocation.width \
-  && (event_y) >= (widget)->allocation.y \
-  && (event_y) <= (widget)->allocation.y + (widget)->allocation.height)
+#define EVENT_IN_ALLOCATION(event_x,event_y,allocation) \
+  ((event_x) >= allocation.x  \
+  && (event_x) <= allocation.x + allocation.width \
+  && (event_y) >= allocation.y \
+  && (event_y) <= allocation.y + allocation.height)
 
 
 
@@ -952,6 +962,7 @@ terminal_window_notebook_button_press_event (GtkNotebook    *notebook,
                                              TerminalWindow *window)
 {
   GtkWidget *page, *label, *menu;
+  GtkAllocation allocation;
   gint       page_num = 0;
   gboolean   close_middle_click;
   gint       x, y;
@@ -969,7 +980,8 @@ terminal_window_notebook_button_press_event (GtkNotebook    *notebook,
         {
           /* check if the user double-clicked on the label */
           label = gtk_notebook_get_tab_label (notebook, GTK_WIDGET (window->active));
-          if (EVENT_IN_ALLOCATION (x, y, label))
+          gtk_widget_get_allocation (label, &allocation);
+          if (EVENT_IN_ALLOCATION (x, y, allocation))
             {
               terminal_window_action_set_title (NULL, window);
               return TRUE;
@@ -982,7 +994,8 @@ terminal_window_notebook_button_press_event (GtkNotebook    *notebook,
       while ((page = gtk_notebook_get_nth_page (notebook, page_num)) != NULL)
         {
           label = gtk_notebook_get_tab_label (notebook, page);
-          if (EVENT_IN_ALLOCATION (x, y, label))
+          gtk_widget_get_allocation (label, &allocation);
+          if (EVENT_IN_ALLOCATION (x, y, allocation))
             break;
           page_num++;
         }
@@ -1046,6 +1059,7 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
   GtkWidget  *notebook;
   GtkWidget **screen;
   GtkWidget  *child, *label;
+  GtkAllocation allocation;
   gint        i, n_pages;
   gboolean    succeed = FALSE;
 
@@ -1060,7 +1074,7 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
       terminal_return_if_fail (GTK_IS_NOTEBOOK (notebook));
 
       /* get the dragged screen */
-      screen = (GtkWidget **) selection_data->data;
+      screen = (GtkWidget **) gtk_selection_data_get_data (selection_data);
       if (!TERMINAL_IS_SCREEN (*screen))
         goto leave;
 
@@ -1077,9 +1091,10 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
           /* get the child label */
           child = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->notebook), i);
           label = gtk_notebook_get_tab_label (GTK_NOTEBOOK (window->notebook), child);
+          gtk_widget_get_allocation (label, &allocation);
 
           /* break if we have a matching drop position */
-          if (x < (label->allocation.x + label->allocation.width / 2))
+          if (x < (allocation.x + allocation.width / 2))
             break;
         }
 
@@ -1600,7 +1615,8 @@ terminal_window_action_set_title (GtkAction      *action,
 
       box = gtk_hbox_new (FALSE, 12);
       gtk_container_set_border_width (GTK_CONTAINER (box), 6);
-      gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), box, TRUE, TRUE, 0);
+      // TODO: comment out for now
+      //gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), box, TRUE, TRUE, 0);
       gtk_widget_show (box);
 
       label = gtk_label_new_with_mnemonic (_("_Title:"));
@@ -1855,7 +1871,8 @@ terminal_window_add (TerminalWindow *window,
   label = terminal_screen_get_tab_label (screen);
 
   page = gtk_notebook_append_page (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), label);
-  gtk_notebook_set_tab_label_packing (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE, TRUE, GTK_PACK_START);
+  // TODO: remove gtk_notebook_set_tab_label_packing()
+  //gtk_notebook_set_tab_label_packing (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE, TRUE, GTK_PACK_START);
 
   /* allow tab sorting and dnd */
   gtk_notebook_set_tab_reorderable (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE);
