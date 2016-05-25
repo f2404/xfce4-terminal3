@@ -85,11 +85,11 @@ static gboolean        terminal_window_accel_activate                (GtkAccelGr
 static void            terminal_window_update_actions                (TerminalWindow         *window);
 static void            terminal_window_rebuild_tabs_menu             (TerminalWindow         *window);
 static void            terminal_window_notebook_page_switched        (GtkNotebook            *notebook,
-                                                                      //GtkNotebookPage        *page,
+                                                                      void        *page,
                                                                       guint                   page_num,
                                                                       TerminalWindow         *window);
 static void            terminal_window_notebook_page_reordered       (GtkNotebook            *notebook,
-                                                                      //GtkNotebookPage        *page,
+                                                                      void        *page,
                                                                       guint                   page_num,
                                                                       TerminalWindow         *window);
 static void            terminal_window_notebook_page_added           (GtkNotebook            *notebook,
@@ -332,12 +332,12 @@ terminal_window_init (TerminalWindow *window)
   /* allocate the notebook for the terminal screens */
   g_object_get (G_OBJECT (window->preferences), "misc-always-show-tabs", &always_show_tabs, NULL);
   window->notebook = g_object_new (GTK_TYPE_NOTEBOOK,
-                                   "homogeneous", TRUE,
+                                   //"homogeneous", TRUE,
                                    "scrollable", TRUE,
                                    "show-border", FALSE,
                                    "show-tabs", always_show_tabs,
-                                   "tab-hborder", 0,
-                                   "tab-vborder", 0,
+                                   //"tab-hborder", 0,
+                                   //"tab-vborder", 0,
                                    NULL);
 
   /* hide the ugly terminal border when tabs are shown */
@@ -794,6 +794,7 @@ terminal_window_rebuild_tabs_menu (TerminalWindow *window)
 static void
 terminal_window_notebook_page_switched (GtkNotebook     *notebook,
                                         //GtkNotebookPage *page,
+                                        void *page,
                                         guint            page_num,
                                         TerminalWindow  *window)
 {
@@ -839,6 +840,7 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
 static void
 terminal_window_notebook_page_reordered (GtkNotebook     *notebook,
                                          //GtkNotebookPage *page,
+                                         void *page,
                                          guint            page_num,
                                          TerminalWindow  *window)
 {
@@ -1872,6 +1874,8 @@ terminal_window_add (TerminalWindow *window,
   page = gtk_notebook_append_page (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), label);
   // TODO: remove gtk_notebook_set_tab_label_packing()
   //gtk_notebook_set_tab_label_packing (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE, TRUE, GTK_PACK_START);
+  g_object_set (screen, "tab-expand", TRUE, NULL);
+  g_object_set (screen, "tab-fill", TRUE, NULL);
 
   /* allow tab sorting and dnd */
   gtk_notebook_set_tab_reorderable (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE);
