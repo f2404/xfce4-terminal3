@@ -743,7 +743,7 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
   if (toplevel != NULL && gtk_widget_get_realized (toplevel))
     {
 #ifdef GDK_WINDOWING_X11
-      result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) GDK_WINDOW_XWINDOW (gtk_widget_get_window (toplevel)));
+      result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) gdk_x11_window_get_xid (gtk_widget_get_window (toplevel)));
 #endif
 
       /* determine the DISPLAY value for the command */
@@ -951,7 +951,8 @@ terminal_screen_update_colors (TerminalScreen *screen)
                  "The default palette has been applied.");
     }
 
-  vte_terminal_set_background_tint_color (VTE_TERMINAL (screen->terminal), has_bg ? &bg : NULL);
+  // TODO: comment out for now
+  //vte_terminal_set_background_tint_color (VTE_TERMINAL (screen->terminal), has_bg ? &bg : NULL);
 
   /* cursor color */
   has_cursor = terminal_preferences_get_color (screen->preferences, "color-cursor", &cursor);
@@ -994,7 +995,8 @@ terminal_screen_update_font (TerminalScreen *screen)
   if (G_LIKELY (font_name != NULL))
     {
       vte_terminal_set_allow_bold (VTE_TERMINAL (screen->terminal), font_allow_bold);
-      vte_terminal_set_font_from_string (VTE_TERMINAL (screen->terminal), font_name);
+      // TODO: comment out for now
+      //vte_terminal_set_font_from_string (VTE_TERMINAL (screen->terminal), font_name);
       g_free (font_name);
     }
 
@@ -1021,11 +1023,13 @@ terminal_screen_update_misc_bell (TerminalScreen *screen)
 static void
 terminal_screen_update_emulation (TerminalScreen *screen)
 {
-  gchar *emulation;
+  // TODO: drop the emulation support
+  /*gchar *emulation;
   g_object_get (G_OBJECT (screen->preferences), "emulation", &emulation, NULL);
   if (g_strcmp0 (emulation, vte_terminal_get_emulation (VTE_TERMINAL (screen->terminal))) != 0)
     vte_terminal_set_emulation (VTE_TERMINAL (screen->terminal), emulation);
-  g_free (emulation);
+  g_free (emulation);*/
+  g_warning ("terminal_screen_update_emulation()");
 }
 
 
@@ -1169,7 +1173,8 @@ terminal_screen_update_word_chars (TerminalScreen *screen)
   g_object_get (G_OBJECT (screen->preferences), "word-chars", &word_chars, NULL);
   if (G_LIKELY (word_chars != NULL))
     {
-      vte_terminal_set_word_chars (VTE_TERMINAL (screen->terminal), word_chars);
+      // TODO: replace with vte_terminal_set_word_char_exceptions()
+      vte_terminal_set_word_char_exceptions (VTE_TERMINAL (screen->terminal), word_chars);
       g_free (word_chars);
     }
 }
@@ -1339,7 +1344,7 @@ terminal_screen_vte_window_contents_changed (TerminalScreen *screen)
 
   /* leave if we should not start an update */
   if (screen->tab_label == NULL
-      || GTK_WIDGET_STATE (screen->tab_label) != GTK_STATE_ACTIVE
+      || gtk_widget_get_state_flags (screen->tab_label) != GTK_STATE_FLAG_ACTIVE
       || time (NULL) - screen->activity_resize_time <= 1)
     return;
 
@@ -1400,7 +1405,8 @@ terminal_screen_timer_background (gpointer user_data)
                                           //screen->terminal->allocation.height);
                                           gtk_widget_get_allocated_width (screen->terminal),
                                           gtk_widget_get_allocated_height (screen->terminal));
-      vte_terminal_set_background_image (VTE_TERMINAL (screen->terminal), image);
+      // TODO: comment out for now
+      //vte_terminal_set_background_image (VTE_TERMINAL (screen->terminal), image);
       if (G_LIKELY (image != NULL))
         g_object_unref (G_OBJECT (image));
       g_object_unref (G_OBJECT (loader));
@@ -1423,7 +1429,8 @@ terminal_screen_timer_background (gpointer user_data)
         }
 
       /* WARNING: the causes a resize too! */
-      vte_terminal_set_background_image (VTE_TERMINAL (screen->terminal), NULL);
+      // TODO: comment out for now
+      //vte_terminal_set_background_image (VTE_TERMINAL (screen->terminal), NULL);
     }
 
   if (G_UNLIKELY (background_mode == TERMINAL_BACKGROUND_IMAGE
@@ -1435,11 +1442,12 @@ terminal_screen_timer_background (gpointer user_data)
       opacity = 0xffff * background_darkness;
     }
 
-  vte_terminal_set_background_saturation (VTE_TERMINAL (screen->terminal), saturation);
-  vte_terminal_set_opacity (VTE_TERMINAL (screen->terminal), opacity);
-  vte_terminal_set_background_transparent (VTE_TERMINAL (screen->terminal),
-                                           background_mode == TERMINAL_BACKGROUND_TRANSPARENT
-                                           && !gtk_widget_is_composited (GTK_WIDGET (screen)));
+  // TODO: comment out for now
+  //vte_terminal_set_background_saturation (VTE_TERMINAL (screen->terminal), saturation);
+  //vte_terminal_set_opacity (VTE_TERMINAL (screen->terminal), opacity);
+  //vte_terminal_set_background_transparent (VTE_TERMINAL (screen->terminal),
+  //                                         background_mode == TERMINAL_BACKGROUND_TRANSPARENT
+  //                                         && !gtk_widget_is_composited (GTK_WIDGET (screen)));
 
   GDK_THREADS_LEAVE ();
 
@@ -1553,7 +1561,8 @@ terminal_screen_launch_child (TerminalScreen *screen)
           spawn_flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
         }
 
-      if (!vte_terminal_fork_command_full (VTE_TERMINAL (screen->terminal),
+      // TODO: comment out for now
+      /*if (!vte_terminal_fork_command_full (VTE_TERMINAL (screen->terminal),
                                            update ? VTE_PTY_DEFAULT : VTE_PTY_NO_LASTLOG | VTE_PTY_NO_UTMP | VTE_PTY_NO_WTMP,
                                            screen->working_directory, argv2, env,
                                            spawn_flags,
@@ -1563,7 +1572,7 @@ terminal_screen_launch_child (TerminalScreen *screen)
           xfce_dialog_show_error (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (screen))),
                                   error, _("Failed to execute child"));
           g_error_free (error);
-        }
+        }*/
 
       g_free (argv2);
 
@@ -1788,7 +1797,7 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
     height = 0;
   height += ypad + char_height * rows;
 
-  if (GTK_WIDGET_MAPPED (window))
+  if (gtk_widget_get_mapped (window))
     gtk_window_resize (window, width, height);
   else
     gtk_window_set_default_size (window, width, height);
@@ -2085,7 +2094,8 @@ terminal_screen_im_append_menuitems (TerminalScreen *screen,
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (GTK_IS_MENU_SHELL (menushell));
 
-  vte_terminal_im_append_menuitems (VTE_TERMINAL (screen->terminal), menushell);
+  // TODO: comment out for now
+  //vte_terminal_im_append_menuitems (VTE_TERMINAL (screen->terminal), menushell);
 }
 
 
