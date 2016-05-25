@@ -5,4 +5,4 @@ The main reason for the porting is this [issue](https://github.com/MidnightComma
 midnight commander unusable with the current version of the terminal.
 
 ## Status
-Application is bulding and running. However, the mc issue is not resolved - apparently, more than just porting is required.
+Application is bulding but NOT running: 'GTK+ 2.x symbols detected. Using GTK+ 2.x and GTK+ 3 in the same process is not supported'.
