@@ -50,3 +50,6 @@ po/Makefile.in.in
 po/POTFILES
 po/stamp-it
 terminal/terminal-config.h
+terminal/xfce4-terminal
+xfce4-terminal-default-apps.xml
+xfce4-terminal.desktop
