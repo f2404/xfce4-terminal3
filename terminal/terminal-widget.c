@@ -28,7 +28,6 @@
 #include <string.h>
 #endif
 
-#include <gdk/gdkkeysyms-compat.h>
 #include <libxfce4ui/libxfce4ui.h>
 
 #include <terminal/terminal-util.h>
@@ -632,8 +631,8 @@ terminal_widget_key_press_event (GtkWidget    *widget,
                 NULL);
 
   /* popup context menu if "Menu" or "<Shift>F10" is pressed */
-  if (event->keyval == GDK_Menu ||
-      (!shortcuts_no_menukey && (event->state & GDK_SHIFT_MASK) != 0 && event->keyval == GDK_F10))
+  if (event->keyval == GDK_KEY_Menu ||
+      (!shortcuts_no_menukey && (event->state & GDK_SHIFT_MASK) != 0 && event->keyval == GDK_KEY_F10))
     {
       gtk_widget_get_pointer (widget, &x, &y);
       terminal_widget_context_menu (TERMINAL_WIDGET (widget), 0, event->time, x, y);
@@ -642,13 +641,13 @@ terminal_widget_key_press_event (GtkWidget    *widget,
   else if (G_LIKELY (scrolling_single_line))
     {
       /* scroll up one line with "<Shift>Up" */
-      if ((event->state & GDK_SHIFT_MASK) != 0 && (event->keyval == GDK_Up || event->keyval == GDK_KP_Up))
+      if ((event->state & GDK_SHIFT_MASK) != 0 && (event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up))
         {
           gtk_adjustment_set_value (adjustment, gtk_adjustment_get_value (adjustment) - 1);
           return TRUE;
         }
       /* scroll down one line with "<Shift>Down" */
-      else if ((event->state & GDK_SHIFT_MASK) != 0 && (event->keyval == GDK_Down || event->keyval == GDK_KP_Down))
+      else if ((event->state & GDK_SHIFT_MASK) != 0 && (event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down))
         {
           value = MIN (gtk_adjustment_get_value (adjustment) + 1, gtk_adjustment_get_upper (adjustment) - gtk_adjustment_get_page_size (adjustment));
           gtk_adjustment_set_value (adjustment, value);

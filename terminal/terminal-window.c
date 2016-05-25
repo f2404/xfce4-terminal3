@@ -34,7 +34,6 @@
 
 #include <libxfce4ui/libxfce4ui.h>
 
-#include <gdk/gdkkeysyms.h>
 #if defined(GDK_WINDOWING_X11)
 #include <gdk/gdkx.h>
 #endif
