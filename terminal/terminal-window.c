@@ -526,8 +526,7 @@ terminal_window_confirm_close (TerminalWindow *window)
 
   hbox = gtk_hbox_new (FALSE, 6);
   gtk_container_set_border_width (GTK_CONTAINER (hbox), 8);
-  // TODO: comment out for now
-  //gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), hbox, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), hbox, TRUE, TRUE, 0);
   gtk_widget_show (hbox);
 
   image = gtk_image_new_from_stock (GTK_STOCK_DIALOG_WARNING, GTK_ICON_SIZE_DIALOG);
@@ -1616,8 +1615,7 @@ terminal_window_action_set_title (GtkAction      *action,
 
       box = gtk_hbox_new (FALSE, 12);
       gtk_container_set_border_width (GTK_CONTAINER (box), 6);
-      // TODO: comment out for now
-      //gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), box, TRUE, TRUE, 0);
+      gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), box, TRUE, TRUE, 0);
       gtk_widget_show (box);
 
       label = gtk_label_new_with_mnemonic (_("_Title:"));
