@@ -1562,7 +1562,7 @@ terminal_screen_launch_child (TerminalScreen *screen)
           spawn_flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
         }
 
-      // TODO: comment out for now
+      // TODO: no child_setup, child_setup_data, *cancellable
       if (!vte_terminal_spawn_sync (VTE_TERMINAL (screen->terminal),
                                     update ? VTE_PTY_DEFAULT : VTE_PTY_NO_LASTLOG | VTE_PTY_NO_UTMP | VTE_PTY_NO_WTMP,
                                     screen->working_directory, argv2, env,
