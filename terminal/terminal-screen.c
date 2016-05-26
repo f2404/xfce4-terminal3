@@ -852,12 +852,12 @@ terminal_screen_update_encoding (TerminalScreen *screen)
 static void
 terminal_screen_update_colors (TerminalScreen *screen)
 {
-  GdkColor   palette[16];
-  GdkColor   bg;
-  GdkColor   fg;
-  GdkColor   cursor;
-  GdkColor   selection;
-  GdkColor   bold;
+  GdkRGBA    palette[16];
+  GdkRGBA    bg;
+  GdkRGBA    fg;
+  GdkRGBA    cursor;
+  GdkRGBA    selection;
+  GdkRGBA    bold;
   gboolean   selection_use_default;
   gboolean   bold_use_default;
   guint      n = 0;
@@ -886,7 +886,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
 
       if (colors != NULL)
         for (; colors[n] != NULL && n < 16; n++)
-          if (!gdk_color_parse (colors[n], palette + n))
+          if (!gdk_rgba_parse (palette + n, colors[n]))
             {
               g_warning ("Unable to parse color \"%s\".", colors[n]);
               break;
@@ -1294,8 +1294,8 @@ terminal_screen_reset_activity_timeout (gpointer user_data)
 {
   TerminalScreen *screen = TERMINAL_SCREEN (user_data);
   GtkStyle       *style;
-  GdkColor        color;
-  GdkColor        active_color;
+  GdkRGBA         color;
+  GdkRGBA         active_color;
 
   if (G_UNLIKELY (screen->tab_label == NULL))
     return FALSE;
@@ -1335,7 +1335,7 @@ static void
 terminal_screen_vte_window_contents_changed (TerminalScreen *screen)
 {
   guint    timeout;
-  GdkColor color;
+  GdkRGBA  color;
   gboolean has_color;
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
@@ -1797,7 +1797,7 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
     height = 0;
   height += ypad + char_height * rows;
 
-  if (gtk_widget_get_mapped (window))
+  if (gtk_widget_get_mapped (GTK_WIDGET (window)))
     gtk_window_resize (window, width, height);
   else
     gtk_window_set_default_size (window, width, height);
