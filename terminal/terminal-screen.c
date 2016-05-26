@@ -1563,17 +1563,17 @@ terminal_screen_launch_child (TerminalScreen *screen)
         }
 
       // TODO: comment out for now
-      /*if (!vte_terminal_fork_command_full (VTE_TERMINAL (screen->terminal),
-                                           update ? VTE_PTY_DEFAULT : VTE_PTY_NO_LASTLOG | VTE_PTY_NO_UTMP | VTE_PTY_NO_WTMP,
-                                           screen->working_directory, argv2, env,
-                                           spawn_flags,
-                                           NULL, NULL,
-                                           &screen->pid, &error))
+      if (!vte_terminal_spawn_sync (VTE_TERMINAL (screen->terminal),
+                                    update ? VTE_PTY_DEFAULT : VTE_PTY_NO_LASTLOG | VTE_PTY_NO_UTMP | VTE_PTY_NO_WTMP,
+                                    screen->working_directory, argv2, env,
+                                    spawn_flags,
+                                    NULL, NULL,
+                                    &screen->pid, NULL, &error))
         {
           xfce_dialog_show_error (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (screen))),
                                   error, _("Failed to execute child"));
           g_error_free (error);
-        }*/
+        }
 
       g_free (argv2);
 
