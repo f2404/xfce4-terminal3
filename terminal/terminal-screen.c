@@ -975,10 +975,11 @@ terminal_screen_update_colors (TerminalScreen *screen)
 static void
 terminal_screen_update_font (TerminalScreen *screen)
 {
-  gboolean             font_allow_bold;
-  gchar               *font_name;
-  glong                grid_w = 0, grid_h = 0;
-  GtkWidget           *toplevel;
+  gboolean              font_allow_bold;
+  gchar                *font_name;
+  glong                 grid_w = 0, grid_h = 0;
+  GtkWidget            *toplevel;
+  PangoFontDescription *desc;
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (TERMINAL_IS_PREFERENCES (screen->preferences));
@@ -995,8 +996,9 @@ terminal_screen_update_font (TerminalScreen *screen)
   if (G_LIKELY (font_name != NULL))
     {
       vte_terminal_set_allow_bold (VTE_TERMINAL (screen->terminal), font_allow_bold);
-      // TODO: comment out for now
-      //vte_terminal_set_font_from_string (VTE_TERMINAL (screen->terminal), font_name);
+      desc = pango_font_description_from_string (font_name);
+      vte_terminal_set_font (VTE_TERMINAL (screen->terminal), desc);
+      pango_font_description_free (desc);
       g_free (font_name);
     }
 
