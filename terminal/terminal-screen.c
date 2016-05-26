@@ -1313,7 +1313,7 @@ terminal_screen_reset_activity_timeout (gpointer user_data)
       color.green = (active_color.green + style->fg[GTK_STATE_ACTIVE].green) / 2;
       color.blue = (active_color.blue + style->fg[GTK_STATE_ACTIVE].blue) / 2;
 
-      gtk_widget_modify_fg (screen->tab_label, GTK_STATE_ACTIVE, &color);
+      gtk_widget_override_color (screen->tab_label, GTK_STATE_FLAG_ACTIVE, &color);
     }
 
   GDK_THREADS_LEAVE ();
@@ -1355,7 +1355,8 @@ terminal_screen_vte_window_contents_changed (TerminalScreen *screen)
 
   /* set label color */
   has_color = terminal_preferences_get_color (screen->preferences, "tab-activity-color", &color);
-  gtk_widget_modify_fg (screen->tab_label, GTK_STATE_ACTIVE, has_color ? &color : NULL);
+  gtk_widget_override_color (screen->tab_label, GTK_STATE_FLAG_ACTIVE, has_color ? &color : NULL);
+
 
   /* stop running reset timeout */
   if (screen->activity_timeout_id != 0)
@@ -1387,8 +1388,8 @@ terminal_screen_timer_background (gpointer user_data)
   TerminalBackground   background_mode;
   GdkPixbuf           *image;
   gdouble              background_darkness;
-  gdouble              saturation = 1.0;
-  guint16              opacity = 0xffff;
+  //gdouble              saturation = 1.0;
+  //guint16              opacity = 0xffff;
 
   terminal_return_val_if_fail (TERMINAL_IS_SCREEN (screen), FALSE);
   terminal_return_val_if_fail (VTE_IS_TERMINAL (screen->terminal), FALSE);
@@ -1438,8 +1439,8 @@ terminal_screen_timer_background (gpointer user_data)
     {
       g_object_get (G_OBJECT (screen->preferences), "background-darkness", &background_darkness, NULL);
 
-      saturation = 1.0 - background_darkness;
-      opacity = 0xffff * background_darkness;
+      //saturation = 1.0 - background_darkness;
+      //opacity = 0xffff * background_darkness;
     }
 
   // TODO: comment out for now
@@ -1671,7 +1672,7 @@ terminal_screen_get_geometry (TerminalScreen *screen,
                               gint           *xpad,
                               gint           *ypad)
 {
-  GtkBorder *border = NULL;
+  //GtkBorder *border = NULL;
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
