@@ -1874,8 +1874,8 @@ terminal_window_add (TerminalWindow *window,
   page = gtk_notebook_append_page (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), label);
   // TODO: remove gtk_notebook_set_tab_label_packing()
   //gtk_notebook_set_tab_label_packing (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE, TRUE, GTK_PACK_START);
-  g_object_set (screen, "tab-expand", TRUE, NULL);
-  g_object_set (screen, "tab-fill", TRUE, NULL);
+  gtk_container_child_set (GTK_CONTAINER (window->notebook), GTK_WIDGET (screen), "tab-expand", TRUE, NULL);
+  gtk_container_child_set (GTK_CONTAINER (window->notebook), GTK_WIDGET (screen), "tab-fill", TRUE, NULL);
 
   /* allow tab sorting and dnd */
   gtk_notebook_set_tab_reorderable (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE);

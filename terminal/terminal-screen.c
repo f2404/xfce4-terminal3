@@ -1683,7 +1683,7 @@ terminal_screen_get_geometry (TerminalScreen *screen,
 
   if (xpad != NULL || ypad != NULL)
     {
-      gtk_widget_style_get (GTK_WIDGET (screen->terminal), "inner-border", &border, NULL);
+      /*gtk_widget_style_get (GTK_WIDGET (screen->terminal), "inner-border", &border, NULL);
       if (G_LIKELY (border != NULL))
         {
           if (xpad != NULL)
@@ -1693,12 +1693,12 @@ terminal_screen_get_geometry (TerminalScreen *screen,
           gtk_border_free (border);
         }
       else
-        {
+        {*/
           if (xpad != NULL)
             *xpad = 0;
           if (ypad != NULL)
             *ypad = 0;
-        }
+        //}
     }
 }
 
