@@ -453,7 +453,7 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
                                     guint32           drag_time)
 {
   const guint16 *ucs;
-  GdkColor       color;
+  GdkRGBA        color;
   GString       *str;
   GValue         value = { 0, };
   gchar        **uris;
@@ -575,12 +575,12 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
         {
           /* get the color from the selection data (ignoring the alpha setting) */
           const guchar *data = gtk_selection_data_get_data (selection_data);
-          color.red = ((guint16 *) data)[0];
-          color.green = ((guint16 *) data)[1];
-          color.blue = ((guint16 *) data)[2];
+          color.red   = ((gdouble *) data)[0];
+          color.green = ((gdouble *) data)[1];
+          color.blue  = ((gdouble *) data)[2];
 
           /* prepare the value */
-          g_value_init (&value, GDK_TYPE_COLOR);
+          g_value_init (&value, GDK_TYPE_RGBA);
           g_value_set_boxed (&value, &color);
 
           /* change the background to the specified color */
