@@ -49,7 +49,15 @@ po/.intltool-merge-cache
 po/Makefile.in.in
 po/POTFILES
 po/stamp-it
+terminal/stamp-terminal-enum-types.h
+terminal/stamp-terminal-marshal.h
 terminal/terminal-config.h
+terminal/terminal-enum-types.c
+terminal/terminal-enum-types.h
+terminal/terminal-marshal.c
+terminal/terminal-marshal.h
+terminal/terminal-preferences.ui
+terminal/terminal-window-ui.h
 terminal/xfce4-terminal
 xfce4-terminal-default-apps.xml
 xfce4-terminal.desktop
