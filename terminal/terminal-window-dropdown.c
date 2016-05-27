@@ -265,7 +265,7 @@ terminal_window_dropdown_init (TerminalWindowDropdown *dropdown)
   gtk_action_set_visible (action, FALSE);
 
   /* notebook buttons */
-  hbox = gtk_hbox_new (TRUE, 2);
+  hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
   gtk_notebook_set_action_widget (GTK_NOTEBOOK (window->notebook), hbox, GTK_PACK_END);
   gtk_widget_show (hbox);
 

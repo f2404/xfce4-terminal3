@@ -2163,7 +2163,7 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
   terminal_return_val_if_fail (TERMINAL_IS_SCREEN (screen), NULL);
 
   /* create the box */
-  hbox = gtk_hbox_new (FALSE, 0);
+  hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox), 2);
   gtk_widget_show (hbox);
 
