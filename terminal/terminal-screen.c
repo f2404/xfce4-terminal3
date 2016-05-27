@@ -1670,7 +1670,7 @@ terminal_screen_get_geometry (TerminalScreen *screen,
                               gint           *xpad,
                               gint           *ypad)
 {
-  //GtkBorder *border = NULL;
+  GtkBorder border;
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
@@ -1682,22 +1682,13 @@ terminal_screen_get_geometry (TerminalScreen *screen,
 
   if (xpad != NULL || ypad != NULL)
     {
-      /*gtk_widget_style_get (GTK_WIDGET (screen->terminal), "inner-border", &border, NULL);
-      if (G_LIKELY (border != NULL))
-        {
-          if (xpad != NULL)
-            *xpad = border->left + border->right;
-          if (ypad != NULL)
-            *ypad = border->top + border->bottom;
-          gtk_border_free (border);
-        }
-      else
-        {*/
-          if (xpad != NULL)
-            *xpad = 0;
-          if (ypad != NULL)
-            *ypad = 0;
-        //}
+      gtk_style_context_get_padding (gtk_widget_get_style_context (screen->terminal),
+                                     gtk_widget_get_state_flags (screen->terminal),
+                                     &border);
+      if (xpad != NULL)
+        *xpad = border.left + border.right;
+      if (ypad != NULL)
+        *ypad = border.top + border.bottom;
     }
 }
 
