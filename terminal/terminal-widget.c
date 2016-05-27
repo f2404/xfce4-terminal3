@@ -273,8 +273,7 @@ static void
 terminal_widget_context_menu (TerminalWidget *widget,
                               gint            button,
                               guint32         event_time,
-                              gint            x,
-                              gint            y)
+                              GdkEvent       *event)
 {
   VteTerminal *terminal = VTE_TERMINAL (widget);
   GMainLoop   *loop;
@@ -293,7 +292,7 @@ terminal_widget_context_menu (TerminalWidget *widget,
     return;
 
   /* check if we have a match */
-  match = vte_terminal_match_check (terminal, x / vte_terminal_get_char_width (terminal), y / vte_terminal_get_char_height (terminal), &tag);
+  match = vte_terminal_match_check_event (terminal, event, &tag);
   if (G_UNLIKELY (match != NULL))
     {
       /* prepend a separator to the menu if it does not already contain one */
@@ -404,10 +403,7 @@ terminal_widget_button_press_event (GtkWidget       *widget,
   if (event->button == 2 && event->type == GDK_BUTTON_PRESS)
     {
       /* middle-clicking on an URI fires the responsible application */
-      match = vte_terminal_match_check (VTE_TERMINAL (widget),
-                                        event->x / vte_terminal_get_char_width (VTE_TERMINAL (widget)),
-                                        event->y / vte_terminal_get_char_height (VTE_TERMINAL (widget)),
-                                        &tag);
+      match = vte_terminal_match_check_event (VTE_TERMINAL (widget), (GdkEvent *) event, &tag);
       if (G_UNLIKELY (match != NULL))
         {
           terminal_widget_open_uri (TERMINAL_WIDGET (widget), match, tag);
@@ -434,7 +430,7 @@ terminal_widget_button_press_event (GtkWidget       *widget,
         {
           terminal_widget_context_menu (TERMINAL_WIDGET (widget),
                                         event->button, event->time,
-                                        event->x, event->y);
+                                        (GdkEvent *) event);
         }
     }
 
@@ -621,8 +617,6 @@ terminal_widget_key_press_event (GtkWidget    *widget,
   gboolean       scrolling_single_line;
   gboolean       shortcuts_no_menukey;
   gdouble        value;
-  gint           x;
-  gint           y;
 
   /* determine current settings */
   g_object_get (G_OBJECT (TERMINAL_WIDGET (widget)->preferences),
@@ -634,8 +628,7 @@ terminal_widget_key_press_event (GtkWidget    *widget,
   if (event->keyval == GDK_KEY_Menu ||
       (!shortcuts_no_menukey && (event->state & GDK_SHIFT_MASK) != 0 && event->keyval == GDK_KEY_F10))
     {
-      gtk_widget_get_pointer (widget, &x, &y);
-      terminal_widget_context_menu (TERMINAL_WIDGET (widget), 0, event->time, x, y);
+      terminal_widget_context_menu (TERMINAL_WIDGET (widget), 0, event->time, (GdkEvent *) event);
       return TRUE;
     }
   else if (G_LIKELY (scrolling_single_line))
