@@ -289,17 +289,12 @@ terminal_window_init (TerminalWindow *window)
   GtkWidget      *vbox;
   gboolean        always_show_tabs;
   GdkScreen      *screen;
-  // TODO: replace GdkColormap with GdkVisual
-  //GdkColormap    *colormap;
-  GdkVisual *visual;
+  GdkVisual      *visual;
 
   window->preferences = terminal_preferences_get ();
 
   /* try to set the rgba colormap so vte can use real transparency */
   screen = gtk_window_get_screen (GTK_WINDOW (window));
-  //colormap = gdk_screen_get_rgba_colormap (screen);
-  //if (colormap != NULL)
-  //  gtk_widget_set_colormap (GTK_WIDGET (window), colormap);
   visual = gdk_screen_get_rgba_visual (screen);
   if (visual != NULL)
     gtk_widget_set_visual (GTK_WIDGET (window), visual);
@@ -961,11 +956,11 @@ terminal_window_notebook_button_press_event (GtkNotebook    *notebook,
                                              GdkEventButton *event,
                                              TerminalWindow *window)
 {
-  GtkWidget *page, *label, *menu;
+  GtkWidget    *page, *label, *menu;
   GtkAllocation allocation;
-  gint       page_num = 0;
-  gboolean   close_middle_click;
-  gint       x, y;
+  gint          page_num = 0;
+  gboolean      close_middle_click;
+  gint          x, y;
 
   terminal_return_val_if_fail (TERMINAL_IS_WINDOW (window), FALSE);
   terminal_return_val_if_fail (GTK_IS_NOTEBOOK (notebook), FALSE);
@@ -1056,12 +1051,12 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
                                              guint32           drag_time,
                                              TerminalWindow   *window)
 {
-  GtkWidget  *notebook;
-  GtkWidget **screen;
-  GtkWidget  *child, *label;
+  GtkWidget    *notebook;
+  GtkWidget   **screen;
+  GtkWidget    *child, *label;
   GtkAllocation allocation;
-  gint        i, n_pages;
-  gboolean    succeed = FALSE;
+  gint          i, n_pages;
+  gboolean      succeed = FALSE;
 
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (widget));

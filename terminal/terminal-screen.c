@@ -441,7 +441,6 @@ terminal_screen_realize (GtkWidget *widget)
   (*GTK_WIDGET_CLASS (terminal_screen_parent_class)->realize) (widget);
 
   /* make sure the TerminalWidget is realized as well */
-  //if (!GTK_WIDGET_REALIZED (TERMINAL_SCREEN (widget)->terminal))
   if (!gtk_widget_get_realized (TERMINAL_SCREEN (widget)->terminal))
     gtk_widget_realize (TERMINAL_SCREEN (widget)->terminal);
 
@@ -739,7 +738,6 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
 
   /* determine the toplevel widget */
   toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
-  //if (toplevel != NULL && GTK_WIDGET_REALIZED (toplevel))
   if (toplevel != NULL && gtk_widget_get_realized (toplevel))
     {
 #ifdef GDK_WINDOWING_X11
@@ -1404,8 +1402,6 @@ terminal_screen_timer_background (gpointer user_data)
     {
       loader = terminal_image_loader_get ();
       image = terminal_image_loader_load (loader,
-                                          //screen->terminal->allocation.width,
-                                          //screen->terminal->allocation.height);
                                           gtk_widget_get_allocated_width (screen->terminal),
                                           gtk_widget_get_allocated_height (screen->terminal));
       // TODO: comment out for now
@@ -2193,7 +2189,6 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
   button = gtk_button_new ();
   gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
   gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
-  //GTK_WIDGET_UNSET_FLAGS (button, GTK_CAN_DEFAULT | GTK_CAN_FOCUS);
   gtk_widget_set_can_default (button, FALSE);
   gtk_widget_set_can_focus (button, FALSE);
   gtk_widget_set_tooltip_text (button, _("Close this tab"));
