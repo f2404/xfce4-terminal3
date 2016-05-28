@@ -85,11 +85,11 @@ static gboolean        terminal_window_accel_activate                (GtkAccelGr
 static void            terminal_window_update_actions                (TerminalWindow         *window);
 static void            terminal_window_rebuild_tabs_menu             (TerminalWindow         *window);
 static void            terminal_window_notebook_page_switched        (GtkNotebook            *notebook,
-                                                                      void        *page,
+                                                                      GtkWidget              *page,
                                                                       guint                   page_num,
                                                                       TerminalWindow         *window);
 static void            terminal_window_notebook_page_reordered       (GtkNotebook            *notebook,
-                                                                      void        *page,
+                                                                      GtkWidget              *page,
                                                                       guint                   page_num,
                                                                       TerminalWindow         *window);
 static void            terminal_window_notebook_page_added           (GtkNotebook            *notebook,
@@ -787,8 +787,7 @@ terminal_window_rebuild_tabs_menu (TerminalWindow *window)
 
 static void
 terminal_window_notebook_page_switched (GtkNotebook     *notebook,
-                                        //GtkNotebookPage *page,
-                                        void *page,
+                                        GtkWidget       *page,
                                         guint            page_num,
                                         TerminalWindow  *window)
 {
@@ -833,8 +832,7 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
 
 static void
 terminal_window_notebook_page_reordered (GtkNotebook     *notebook,
-                                         //GtkNotebookPage *page,
-                                         void *page,
+                                         GtkWidget       *page,
                                          guint            page_num,
                                          TerminalWindow  *window)
 {
