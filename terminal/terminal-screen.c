@@ -388,7 +388,6 @@ terminal_screen_get_property (GObject          *object,
             }
           else if (G_LIKELY (screen->terminal != NULL))
             {
-              //title = VTE_TERMINAL (screen->terminal)->window_title;
               title = vte_terminal_get_window_title (VTE_TERMINAL (screen->terminal));
             }
 
@@ -678,7 +677,6 @@ terminal_screen_parse_title (TerminalScreen *screen,
 
         case 'w':
           /* window title from vte */
-          //vte_title = VTE_TERMINAL (screen->terminal)->window_title;
           vte_title = vte_terminal_get_window_title (VTE_TERMINAL (screen->terminal));
           if (G_UNLIKELY (vte_title == NULL))
             vte_title = _("Untitled");
@@ -1272,8 +1270,6 @@ terminal_screen_vte_resize_window (VteTerminal    *terminal,
   grid_height = (height - ypad) / char_height;
 
   /* leave if there is nothing to resize */
-  //if (terminal->column_count == grid_width
-  //    && terminal->row_count == grid_height)
     if (vte_terminal_get_column_count (terminal) == grid_width
         && vte_terminal_get_row_count (terminal) == grid_height)
     return;
@@ -1712,8 +1708,6 @@ terminal_screen_set_window_geometry_hints (TerminalScreen *screen,
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
-  //terminal_return_if_fail (GTK_WIDGET_REALIZED (screen));
-  //terminal_return_if_fail (GTK_WIDGET_REALIZED (window));
   terminal_return_if_fail (gtk_widget_get_realized (screen));
   terminal_return_if_fail (gtk_widget_get_realized (window));
 
@@ -1818,7 +1812,6 @@ terminal_screen_get_title (TerminalScreen *screen)
   if (G_UNLIKELY (screen->custom_title != NULL))
     return terminal_screen_parse_title (screen, screen->custom_title);
 
-  //vte_title = VTE_TERMINAL (screen->terminal)->window_title;
   vte_title = vte_terminal_get_window_title (VTE_TERMINAL (screen->terminal));
   g_object_get (G_OBJECT (screen->preferences),
                 "title-mode", &mode,
