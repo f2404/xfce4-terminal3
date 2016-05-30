@@ -282,7 +282,7 @@ terminal_screen_init (TerminalScreen *screen)
   gtk_box_pack_start (GTK_BOX (screen), screen->terminal, TRUE, TRUE, 0);
 
   // TODO: use NULL for adjustment
-  screen->scrollbar = gtk_vscrollbar_new (NULL);
+  screen->scrollbar = gtk_scrollbar_new (GTK_ORIENTATION_VERTICAL, NULL);
   gtk_box_pack_start (GTK_BOX (screen), screen->scrollbar, FALSE, FALSE, 0);
   g_signal_connect_after (G_OBJECT (screen->scrollbar), "button-press-event", G_CALLBACK (gtk_true), NULL);
   gtk_widget_show (screen->scrollbar);
