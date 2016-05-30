@@ -513,7 +513,7 @@ terminal_preferences_dialog_palette_changed (GtkWidget                 *button,
       g_snprintf (name, sizeof (name), "color-palette%d", i);
       obj = gtk_builder_get_object (GTK_BUILDER (dialog), name);
       terminal_return_if_fail (GTK_IS_COLOR_BUTTON (obj));
-      gtk_color_button_get_rgba (GTK_COLOR_BUTTON (obj), &color);
+      gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (obj), &color);
 
       /* append to string */
       color_str = gdk_rgba_to_string (&color);
@@ -559,7 +559,7 @@ terminal_preferences_dialog_palette_notify (TerminalPreferencesDialog *dialog)
             terminal_return_if_fail (GTK_IS_COLOR_BUTTON (obj));
 
             if (gdk_rgba_parse (&color, colors[i]))
-              gtk_color_button_set_rgba (GTK_COLOR_BUTTON (obj), &color);
+              gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (obj), &color);
           }
 
       g_strfreev (colors);

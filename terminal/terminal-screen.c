@@ -194,7 +194,7 @@ static guint screen_last_session_id = 0;
 
 
 
-G_DEFINE_TYPE (TerminalScreen, terminal_screen, GTK_TYPE_HBOX)
+G_DEFINE_TYPE (TerminalScreen, terminal_screen, GTK_TYPE_BOX)
 
 
 
@@ -2171,7 +2171,7 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
                           G_BINDING_SYNC_CREATE);
 
   button = gtk_button_new ();
-  gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
+  gtk_widget_set_focus_on_click (button, FALSE);
   gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
   gtk_widget_set_can_default (button, FALSE);
   gtk_widget_set_can_focus (button, FALSE);
