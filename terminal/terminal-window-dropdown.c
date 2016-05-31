@@ -273,7 +273,7 @@ terminal_window_dropdown_init (TerminalWindowDropdown *dropdown)
   gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
   gtk_widget_set_tooltip_text (button, _("Keep window open when it loses focus"));
   gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
-  gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
+  gtk_widget_set_focus_on_click (button, FALSE);
   gtk_widget_show (button);
 
   g_object_get (G_OBJECT (window->preferences), "dropdown-keep-open-default", &keep_open, NULL);
@@ -289,7 +289,7 @@ terminal_window_dropdown_init (TerminalWindowDropdown *dropdown)
   gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
   gtk_widget_set_tooltip_text (button, gtk_action_get_tooltip (action));
   gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
-  gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
+  gtk_widget_set_focus_on_click (button, FALSE);
   g_signal_connect_swapped (G_OBJECT (button), "clicked",
       G_CALLBACK (gtk_action_activate), action);
   gtk_widget_show (button);
@@ -336,13 +336,13 @@ terminal_window_dropdown_set_property (GObject      *object,
       break;
 
     case PROP_DROPDOWN_OPACITY:
-      screen = gtk_window_get_screen (GTK_WINDOW (dropdown));
+      screen = gtk_widget_get_screen (GTK_WIDGET (dropdown));
       if (gdk_screen_is_composited (screen))
         opacity = g_value_get_uint (value) / 100.0;
       else
         opacity = 1.00;
 
-      gtk_window_set_opacity (GTK_WINDOW (dropdown), opacity);
+      gtk_widget_set_opacity (GTK_WIDGET (dropdown), opacity);
       return;
 
     case PROP_DROPDOWN_STATUS_ICON:
