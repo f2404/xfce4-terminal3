@@ -1171,8 +1171,8 @@ terminal_screen_update_word_chars (TerminalScreen *screen)
   g_object_get (G_OBJECT (screen->preferences), "word-chars", &word_chars, NULL);
   if (G_LIKELY (word_chars != NULL))
     {
-      // TODO: replace with vte_terminal_set_word_char_exceptions()
-      vte_terminal_set_word_char_exceptions (VTE_TERMINAL (screen->terminal), word_chars);
+      // TODO: removed functionality, remove
+      //vte_terminal_set_word_chars (VTE_TERMINAL (screen->terminal), word_chars);
       g_free (word_chars);
     }
 }
@@ -2171,7 +2171,7 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
                           G_BINDING_SYNC_CREATE);
 
   button = gtk_button_new ();
-  gtk_widget_set_focus_on_click (button, FALSE);
+  gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
   gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
   gtk_widget_set_can_default (button, FALSE);
   gtk_widget_set_can_focus (button, FALSE);
