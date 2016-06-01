@@ -612,7 +612,6 @@ static gboolean
 terminal_widget_key_press_event (GtkWidget    *widget,
                                  GdkEventKey  *event)
 {
-  // TODO: try to use gtk_scrollable_get_vadjustment()
   GtkAdjustment *adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (widget));
   gboolean       scrolling_single_line;
   gboolean       shortcuts_no_menukey;
