@@ -1046,7 +1046,7 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
                                              gint              y,
                                              GtkSelectionData *selection_data,
                                              guint             info,
-                                             guint32           drag_time,
+                                             guint             drag_time,
                                              TerminalWindow   *window)
 {
   GtkWidget  *notebook;
