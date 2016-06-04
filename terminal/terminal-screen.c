@@ -54,10 +54,6 @@
 #endif
 #include <glib/gstdio.h>
 
-/* gdkcolor to [0-1] range conversion */
-#define SCALE(i)   (i / 65535.)
-#define UNSCALE(d) ((guint16)(d * 65535 + 0.5))
-
 /* offset of saturation random value */
 #define SATURATION_WINDOW 0.20
 
@@ -901,7 +897,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
   /* we pick a random hue value to keep readability */
   if (vary_bg && has_bg)
     {
-      gtk_rgb_to_hsv (SCALE (bg.red), SCALE (bg.green), SCALE (bg.blue),
+      gtk_rgb_to_hsv (bg.red, bg.green, bg.blue,
                       NULL, &hsv[HSV_SATURATION], &hsv[HSV_VALUE]);
 
       /* pick random hue */
@@ -931,9 +927,9 @@ terminal_screen_update_colors (TerminalScreen *screen)
                       &rgb[RGB_RED], &rgb[RGB_GREEN], &rgb[RGB_BLUE]);
 
       /* set new gdk color */
-      bg.red = UNSCALE (rgb[RGB_RED]);
-      bg.green = UNSCALE (rgb[RGB_GREEN]);
-      bg.blue = UNSCALE (rgb[RGB_BLUE]);
+      bg.red = rgb[RGB_RED];
+      bg.green = rgb[RGB_GREEN];
+      bg.blue = rgb[RGB_BLUE];
     }
 
   if (G_LIKELY (valid_palette))
