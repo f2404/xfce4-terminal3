@@ -855,7 +855,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
   GdkRGBA    bold;
   gboolean   selection_use_default;
   gboolean   bold_use_default;
-  guint      n = 0;
+  guint      n;
   gboolean   has_bg;
   gboolean   has_fg;
   gboolean   has_cursor;
@@ -880,7 +880,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
       g_free (palette_str);
 
       if (colors != NULL)
-        for (; colors[n] != NULL && n < 16; n++)
+        for (n = 0; n < 16 && colors[n] != NULL; n++)
           if (!gdk_rgba_parse (palette + n, colors[n]))
             {
               g_warning ("Unable to parse color \"%s\".", colors[n]);
