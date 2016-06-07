@@ -833,12 +833,9 @@ static void
 terminal_screen_update_encoding (TerminalScreen *screen)
 {
   gchar *encoding;
-  GError *error = NULL;
 
   g_object_get (G_OBJECT (screen->preferences), "encoding", &encoding, NULL);
-  if (!vte_terminal_set_encoding (VTE_TERMINAL (screen->terminal), encoding, &error)) {
-      g_printerr("Failed to set encoding: %s\n", error->message);
-  }
+  terminal_screen_set_encoding (screen, encoding);
   g_free (encoding);
 }
 
@@ -855,7 +852,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
   GdkRGBA    bold;
   gboolean   selection_use_default;
   gboolean   bold_use_default;
-  guint      n;
+  guint      n = 0;
   gboolean   has_bg;
   gboolean   has_fg;
   gboolean   has_cursor;
@@ -880,7 +877,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
       g_free (palette_str);
 
       if (colors != NULL)
-        for (n = 0; n < 16 && colors[n] != NULL; n++)
+        for (; n < 16 && colors[n] != NULL; n++)
           if (!gdk_rgba_parse (palette + n, colors[n]))
             {
               g_warning ("Unable to parse color \"%s\".", colors[n]);
@@ -2209,10 +2206,9 @@ void
 terminal_screen_set_encoding (TerminalScreen *screen,
                               const gchar    *charset)
 {
-  GError *error;
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
-  if (!vte_terminal_set_encoding (VTE_TERMINAL (screen->terminal), charset, &error)) {
-    g_printerr("Failed to set encoding: %s\n", error->message);
+  if (!vte_terminal_set_encoding (VTE_TERMINAL (screen->terminal), charset, NULL)) {
+    g_printerr("Failed to set encoding %s\n", charset);
   }
 }
 
