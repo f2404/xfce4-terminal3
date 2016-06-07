@@ -1154,7 +1154,7 @@ terminal_window_notebook_create_window (GtkNotebook    *notebook,
       #if GTK_CHECK_VERSION (3,16,0)
         gtk_notebook_detach_tab (notebook, child);
       #else
-        gtk_container_remove (notebook, child);
+        gtk_container_remove (GTK_CONTAINER (notebook), child);
       #endif
 
       /* create new window with the screen */
