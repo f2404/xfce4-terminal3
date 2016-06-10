@@ -723,7 +723,9 @@ terminal_app_open_window (TerminalApp        *app,
 
       terminal_screen_launch_child (TERMINAL_SCREEN (terminal));
 
+    #if GTK_CHECK_VERSION (3,20,0)
       terminal_screen_get_geometry (TERMINAL_SCREEN (terminal), &char_width, &char_height, &xpad, &ypad);
+    #endif
     }
 
   if (!attr->drop_down)
