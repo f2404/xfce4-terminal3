@@ -732,8 +732,11 @@ terminal_app_open_window (TerminalApp        *app,
         geometry = g_strdup (attr->geometry);
 
       /* try to apply the geometry to the window */
+    #if GTK_CHECK_VERSION (3,20,0)
+    #else
       if (!gtk_window_parse_geometry (GTK_WINDOW (window), geometry))
         g_printerr (_("Invalid geometry string \"%s\"\n"), geometry);
+    #endif
 
       /* cleanup */
       g_free (geometry);
