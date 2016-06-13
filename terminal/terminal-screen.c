@@ -2158,7 +2158,7 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
                           G_BINDING_SYNC_CREATE);
 
   button = gtk_button_new ();
-  gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
+  gtk_widget_set_focus_on_click (button, FALSE);
   gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
   gtk_widget_set_can_focus (button, FALSE);
   gtk_widget_set_can_default (button, FALSE);
