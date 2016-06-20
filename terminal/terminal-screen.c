@@ -1752,6 +1752,7 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
 
   gtk_widget_size_request (GTK_WIDGET (window), &window_requisition);
   gtk_widget_size_request (screen->terminal, &terminal_requisition);
+return;
 
   if (columns < 1)
     columns = vte_terminal_get_column_count (VTE_TERMINAL (screen->terminal));
