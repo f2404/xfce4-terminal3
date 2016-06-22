@@ -54,6 +54,10 @@
 #endif
 #include <glib/gstdio.h>
 
+/* gdkcolor to [0-1] range conversion */
+#define SCALE(i)   (i / 65535.)
+#define UNSCALE(d) ((guint16)(d * 65535 + 0.5))
+
 /* offset of saturation random value */
 #define SATURATION_WINDOW 0.20
 
@@ -718,7 +722,8 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
           || strcmp (*p, "WINDOWID") == 0
           || strcmp (*p, "GNOME_DESKTOP_ICON") == 0
           || strcmp (*p, "COLORTERM") == 0
-          || strcmp (*p, "DISPLAY") == 0)
+          || strcmp (*p, "DISPLAY") == 0
+          || strcmp (*p, "TERM") == 0)
         continue;
 
       /* copy the variable */
@@ -877,7 +882,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
       g_free (palette_str);
 
       if (colors != NULL)
-        for (; n < 16 && colors[n] != NULL; n++)
+        for (; colors[n] != NULL && n < 16; n++)
           if (!gdk_rgba_parse (palette + n, colors[n]))
             {
               g_warning ("Unable to parse color \"%s\".", colors[n]);
@@ -894,7 +899,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
   /* we pick a random hue value to keep readability */
   if (vary_bg && has_bg)
     {
-      gtk_rgb_to_hsv (bg.red, bg.green, bg.blue,
+      gtk_rgb_to_hsv (SCALE (bg.red), SCALE (bg.green), SCALE (bg.blue),
                       NULL, &hsv[HSV_SATURATION], &hsv[HSV_VALUE]);
 
       /* pick random hue */
@@ -924,9 +929,9 @@ terminal_screen_update_colors (TerminalScreen *screen)
                       &rgb[RGB_RED], &rgb[RGB_GREEN], &rgb[RGB_BLUE]);
 
       /* set new gdk color */
-      bg.red = rgb[RGB_RED];
-      bg.green = rgb[RGB_GREEN];
-      bg.blue = rgb[RGB_BLUE];
+      bg.red = UNSCALE (rgb[RGB_RED]);
+      bg.green = UNSCALE (rgb[RGB_GREEN]);
+      bg.blue = UNSCALE (rgb[RGB_BLUE]);
     }
 
   if (G_LIKELY (valid_palette))
@@ -1743,6 +1748,10 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
   glong          char_width;
   glong          char_height;
 
+#if GTK_CHECK_VERSION (3,20,0)
+  // Don't need this on gtk>=3.20
+  return;
+#endif
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
@@ -1752,7 +1761,6 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
 
   gtk_widget_size_request (GTK_WIDGET (window), &window_requisition);
   gtk_widget_size_request (screen->terminal, &terminal_requisition);
-return;
 
   if (columns < 1)
     columns = vte_terminal_get_column_count (VTE_TERMINAL (screen->terminal));
