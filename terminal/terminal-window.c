@@ -926,16 +926,16 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
       return;
     }
 
-  /* send a signal about switching to another tab */
-  new_page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook));
-  new_page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->notebook), new_page_num);
-  terminal_window_notebook_page_switched (notebook, new_page, new_page_num, window);
-
   /* show the tabs when needed */
   terminal_window_notebook_show_tabs (window);
 
   /* regenerate the "Go" menu */
   terminal_window_rebuild_tabs_menu (window);
+
+  /* send a signal about switching to another tab */
+  new_page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook));
+  new_page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->notebook), new_page_num);
+  terminal_window_notebook_page_switched (notebook, new_page, new_page_num, window);
 }
 
 static gboolean
@@ -1386,6 +1386,7 @@ terminal_window_action_prefs (GtkAction      *action,
   if (window->preferences_dialog != NULL)
     {
       gtk_window_set_transient_for (GTK_WINDOW (window->preferences_dialog), GTK_WINDOW (window));
+      gtk_window_set_keep_above (GTK_WINDOW (window->preferences_dialog), TRUE);
       gtk_window_present (GTK_WINDOW (window->preferences_dialog));
     }
 }
