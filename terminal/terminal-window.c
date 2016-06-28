@@ -207,7 +207,7 @@ static const GtkActionEntry action_entries[] =
   { "view-menu", NULL, N_ ("_View"), NULL, NULL, NULL, },
   { "terminal-menu", NULL, N_ ("_Terminal"), NULL, NULL, NULL, },
     { "set-title", NULL, N_ ("_Set Title..."), NULL, NULL, G_CALLBACK (terminal_window_action_set_title), },
-    { "search", "edit-find", N_ ("_Find..."), "<control><shift>f", NULL, G_CALLBACK (terminal_window_action_search), },
+    { "search", "edit-find", N_ ("_Find..."), "<control><shift>f", N_ ("Search terminal contents"), G_CALLBACK (terminal_window_action_search), },
     { "search-next", NULL, N_ ("Find Ne_xt"), NULL, NULL, G_CALLBACK (terminal_window_action_search_next), },
     { "search-prev", NULL, N_ ("Find Pre_vious"), NULL, NULL, G_CALLBACK (terminal_window_action_search_prev), },
     { "reset", NULL, N_ ("_Reset"), NULL, NULL, G_CALLBACK (terminal_window_action_reset), },
@@ -1109,7 +1109,11 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
           g_object_ref (G_OBJECT (window));
 
           /* remove the document from the source notebook */
+#if GTK_CHECK_VERSION (3,16,0)
+          gtk_notebook_detach_tab (notebook, *screen);
+#else
           gtk_container_remove (GTK_CONTAINER (notebook), *screen);
+#endif
 
           /* add the screen to the new window */
           terminal_window_add (window, TERMINAL_SCREEN (*screen));
