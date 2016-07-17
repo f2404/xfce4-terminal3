@@ -941,11 +941,15 @@ terminal_screen_update_colors (TerminalScreen *screen)
   /* cursor color */
   has_cursor = terminal_preferences_get_color (screen->preferences, "color-cursor", &cursor);
   vte_terminal_set_color_cursor (VTE_TERMINAL (screen->terminal), has_cursor ? &cursor : NULL);
+  vte_terminal_set_color_cursor_foreground (VTE_TERMINAL (screen->terminal),
+                                            has_cursor && has_bg ? &bg : NULL);
 
   /* selection color */
   if (!selection_use_default)
     selection_use_default = !terminal_preferences_get_color (screen->preferences, "color-selection", &selection);
   vte_terminal_set_color_highlight (VTE_TERMINAL (screen->terminal), selection_use_default ? NULL : &selection);
+  vte_terminal_set_color_highlight_foreground (VTE_TERMINAL (screen->terminal),
+                                               selection_use_default && has_bg ? NULL : &bg);
 
   /* bold color */
   if (!bold_use_default)
@@ -2048,28 +2052,6 @@ terminal_screen_reset (TerminalScreen *screen,
 
   if (clear)
     vte_terminal_search_set_gregex (VTE_TERMINAL (screen->terminal), NULL, 0);
-}
-
-
-
-/**
- * terminal_screen_im_append_menuitems:
- * @screen    : A #TerminalScreen.
- * @menushell : A #GtkMenuShell.
- *
- * Appends menu items for various input methods to the given @menushell.
- * The user can select one of these items to modify the input method
- * used by the terminal.
- **/
-void
-terminal_screen_im_append_menuitems (TerminalScreen *screen,
-                                     GtkMenuShell   *menushell)
-{
-  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
-  terminal_return_if_fail (GTK_IS_MENU_SHELL (menushell));
-
-  // FIXME: functionality seems to have been removed
-  //vte_terminal_im_append_menuitems (VTE_TERMINAL (screen->terminal), menushell);
 }
 
 
