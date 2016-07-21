@@ -96,11 +96,11 @@ enum
   PROP_SCROLLING_ON_KEYSTROKE,
   PROP_SCROLLING_SINGLE_LINE,
   PROP_SCROLLING_UNLIMITED,
+  PROP_SHORTCUTS_NO_HELPKEY,
   PROP_SHORTCUTS_NO_MENUKEY,
   PROP_SHORTCUTS_NO_MNEMONICS,
   PROP_TITLE_INITIAL,
   PROP_TITLE_MODE,
-  PROP_EMULATION,
   PROP_WORD_CHARS,
   PROP_TAB_ACTIVITY_COLOR,
   PROP_TAB_ACTIVITY_TIMEOUT,
@@ -859,6 +859,18 @@ terminal_preferences_class_init (TerminalPreferencesClass *klass)
                             G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /**
+   * TerminalPreferences:shortcuts-no-helpkey:
+   *
+   * Disable help shortcut key (F1).
+   **/
+  preferences_props[PROP_SHORTCUTS_NO_HELPKEY] =
+      g_param_spec_boolean ("shortcuts-no-helpkey",
+                            NULL,
+                            "ShortcutsNoHelpkey",
+                            FALSE,
+                            G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  /**
    * TerminalPreferences:shortcuts-no-menukey:
    *
    * Disable menu shortcut key (F10 by default).
@@ -900,16 +912,6 @@ terminal_preferences_class_init (TerminalPreferencesClass *klass)
                          TERMINAL_TYPE_TITLE,
                          TERMINAL_TITLE_APPEND,
                          G_PARAM_READWRITE| G_PARAM_STATIC_STRINGS);
-
-  /**
-   * TerminalPreferences:emulation:
-   **/
-  preferences_props[PROP_EMULATION] =
-      g_param_spec_string ("emulation",
-                           NULL,
-                           "Emulation",
-                           "xterm",
-                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /**
    * TerminalPreferences:word-chars:

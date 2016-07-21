@@ -61,3 +61,6 @@ terminal/terminal-window-ui.h
 terminal/xfce4-terminal
 xfce4-terminal-default-apps.xml
 xfce4-terminal.desktop
+
+# Catchall stuff #
+*~

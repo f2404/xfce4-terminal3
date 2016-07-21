@@ -1765,8 +1765,19 @@ static void
 terminal_window_action_contents (GtkAction       *action,
                                  TerminalWindow  *window)
 {
-  /* open the Terminal user manual */
-  xfce_dialog_show_help (GTK_WINDOW (window), "terminal", NULL, NULL);
+  gboolean shortcuts_no_helpkey;
+  gboolean ret;
+
+  g_object_get (G_OBJECT (window->preferences),
+                "shortcuts-no-helpkey", &shortcuts_no_helpkey,
+                NULL);
+
+  if (!shortcuts_no_helpkey)
+    /* open the Terminal user manual */
+    xfce_dialog_show_help (GTK_WINDOW (window), "terminal", NULL, NULL);
+  else
+    /* propagate to the terminal */
+    g_signal_emit_by_name (G_OBJECT (window->active), "key-press-event", gtk_get_current_event (), &ret);
 }
 
 
@@ -1863,8 +1874,6 @@ terminal_window_add (TerminalWindow *window,
   label = terminal_screen_get_tab_label (screen);
 
   page = gtk_notebook_append_page (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), label);
-  // TODO: should not be used anymore according to Gtk docs, remove if sure
-  //gtk_notebook_set_tab_label_packing (GTK_NOTEBOOK (window->notebook), GTK_WIDGET (screen), TRUE, TRUE, GTK_PACK_START);
   gtk_container_child_set (GTK_CONTAINER (window->notebook), GTK_WIDGET (screen), "tab-expand", TRUE, NULL);
   gtk_container_child_set (GTK_CONTAINER (window->notebook), GTK_WIDGET (screen), "tab-fill", TRUE, NULL);
 
