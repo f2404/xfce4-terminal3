@@ -377,6 +377,9 @@ terminal_app_new_window (TerminalWindow *window,
   win_attr->display = gdk_screen_make_display_name (screen);
   tab_attr = win_attr->tabs->data;
   tab_attr->directory = g_strdup (working_directory);
+  if (window->font)
+    win_attr->font = g_strdup (window->font);
+  win_attr->zoom = window->zoom;
 
   /* check if we should try to inherit the parent geometry */
   g_object_get (G_OBJECT (app->preferences), "misc-inherit-geometry", &inherit_geometry, NULL);
@@ -618,7 +621,7 @@ terminal_app_open_window (TerminalApp        *app,
   gint             attr_screen_num;
 #if GTK_CHECK_VERSION (3,20,0)
   TerminalScreen  *active_terminal;
-  gint             mask = NoValue;
+  gint             mask = NoValue, x, y;
   guint            width, height;
 #endif
 
@@ -709,6 +712,17 @@ terminal_app_open_window (TerminalApp        *app,
         }
     }
 
+  /* font and zoom for new window */
+  if (!reuse_window)
+    {
+      if (attr->font)
+        {
+          g_free (TERMINAL_WINDOW (window)->font);
+          TERMINAL_WINDOW (window)->font = g_strdup (attr->font);
+        }
+      TERMINAL_WINDOW (window)->zoom = attr->zoom;
+    }
+
   /* add the tabs */
   for (lp = attr->tabs; lp != NULL; lp = lp->next)
     {
@@ -747,13 +761,17 @@ terminal_app_open_window (TerminalApp        *app,
 
       /* try to apply the geometry to the window */
 #if GTK_CHECK_VERSION (3,20,0) && defined (GDK_WINDOWING_X11)
-      /* TODO: support x/y offsets */
-      mask = XParseGeometry (geometry, NULL, NULL, &width, &height);
-      if ((mask & WidthValue) && (mask & HeightValue))
+      mask = XParseGeometry (geometry, &x, &y, &width, &height);
+      if (((mask & WidthValue) && (mask & HeightValue)) || ((mask & XValue) && (mask & YValue)))
         {
-          active_terminal = terminal_window_get_active (TERMINAL_WINDOW (window));
-          if (G_LIKELY (active_terminal != NULL))
-            terminal_screen_set_size (active_terminal, width, height);
+          if ((mask & WidthValue) && (mask & HeightValue))
+            {
+              active_terminal = terminal_window_get_active (TERMINAL_WINDOW (window));
+              if (G_LIKELY (active_terminal != NULL))
+                terminal_screen_set_size (active_terminal, width, height);
+            }
+          if ((mask & XValue) && (mask & YValue))
+            gtk_window_move (GTK_WINDOW (window), x, y);
         }
       else
 #else
