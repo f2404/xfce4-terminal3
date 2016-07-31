@@ -957,8 +957,10 @@ terminal_screen_update_colors (TerminalScreen *screen)
   /* cursor color */
   has_cursor = terminal_preferences_get_color (screen->preferences, "color-cursor", &cursor);
   vte_terminal_set_color_cursor (VTE_TERMINAL (screen->terminal), has_cursor ? &cursor : NULL);
+#if VTE_CHECK_VERSION (0, 44, 2)
   vte_terminal_set_color_cursor_foreground (VTE_TERMINAL (screen->terminal),
                                             has_cursor && has_bg ? &bg : NULL);
+#endif
 
   /* selection color */
   if (!selection_use_default)
@@ -1511,18 +1513,24 @@ gchar* terminal_screen_zoom_font (TerminalScreen *screen,
   terminal_return_val_if_fail (font_name != NULL, NULL);
 
   switch (zoom)
-   {
-     case TERMINAL_ZOOM_LEVEL_XXX_SMALL: scale = PANGO_SCALE_XX_SMALL/1.2; break;
-     case TERMINAL_ZOOM_LEVEL_XX_SMALL:  scale = PANGO_SCALE_XX_SMALL;     break;
-     case TERMINAL_ZOOM_LEVEL_X_SMALL:   scale = PANGO_SCALE_X_SMALL;      break;
-     case TERMINAL_ZOOM_LEVEL_SMALL:     scale = PANGO_SCALE_SMALL;        break;
-     case TERMINAL_ZOOM_LEVEL_LARGE:     scale = PANGO_SCALE_LARGE;        break;
-     case TERMINAL_ZOOM_LEVEL_X_LARGE:   scale = PANGO_SCALE_X_LARGE;      break;
-     case TERMINAL_ZOOM_LEVEL_XX_LARGE:  scale = PANGO_SCALE_XX_LARGE;     break;
-     case TERMINAL_ZOOM_LEVEL_XXX_LARGE: scale = PANGO_SCALE_XX_LARGE*1.2; break;
-     default:
-       return font_name;
-   }
+    {
+      case TERMINAL_ZOOM_LEVEL_MINIMUM:     scale = PANGO_SCALE_XX_SMALL/1.2/1.2/1.2/1.2; break;
+      case TERMINAL_ZOOM_LEVEL_XXXXX_SMALL: scale = PANGO_SCALE_XX_SMALL/1.2/1.2/1.2;     break;
+      case TERMINAL_ZOOM_LEVEL_XXXX_SMALL:  scale = PANGO_SCALE_XX_SMALL/1.2/1.2;         break;
+      case TERMINAL_ZOOM_LEVEL_XXX_SMALL:   scale = PANGO_SCALE_XX_SMALL/1.2;             break;
+      case TERMINAL_ZOOM_LEVEL_XX_SMALL:    scale = PANGO_SCALE_XX_SMALL;                 break;
+      case TERMINAL_ZOOM_LEVEL_X_SMALL:     scale = PANGO_SCALE_X_SMALL;                  break;
+      case TERMINAL_ZOOM_LEVEL_SMALL:       scale = PANGO_SCALE_SMALL;                    break;
+      case TERMINAL_ZOOM_LEVEL_LARGE:       scale = PANGO_SCALE_LARGE;                    break;
+      case TERMINAL_ZOOM_LEVEL_X_LARGE:     scale = PANGO_SCALE_X_LARGE;                  break;
+      case TERMINAL_ZOOM_LEVEL_XX_LARGE:    scale = PANGO_SCALE_XX_LARGE;                 break;
+      case TERMINAL_ZOOM_LEVEL_XXX_LARGE:   scale = PANGO_SCALE_XX_LARGE*1.2;             break;
+      case TERMINAL_ZOOM_LEVEL_XXXX_LARGE:  scale = PANGO_SCALE_XX_LARGE*1.2*1.2;         break;
+      case TERMINAL_ZOOM_LEVEL_XXXXX_LARGE: scale = PANGO_SCALE_XX_LARGE*1.2*1.2*1.2;     break;
+      case TERMINAL_ZOOM_LEVEL_MAXIMUM:     scale = PANGO_SCALE_XX_LARGE*1.2*1.2*1.2*1.2; break;
+      default:
+        return font_name;
+    }
 
   font_desc = pango_font_description_from_string (font_name);
   if (font_desc == NULL)
@@ -1804,8 +1812,8 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
 
   terminal_screen_set_window_geometry_hints (screen, window);
 
-  gtk_widget_get_preferred_size (GTK_WIDGET (window), &window_requisition, NULL);
-  gtk_widget_get_preferred_size (screen->terminal, &terminal_requisition, NULL);
+  gtk_widget_get_preferred_size (GTK_WIDGET (window), NULL, &window_requisition);
+  gtk_widget_get_preferred_size (screen->terminal, NULL, &terminal_requisition);
 
   if (columns < 1)
     columns = vte_terminal_get_column_count (VTE_TERMINAL (screen->terminal));
