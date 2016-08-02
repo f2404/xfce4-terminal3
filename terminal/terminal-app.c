@@ -58,6 +58,9 @@ static void               terminal_app_update_accels            (TerminalApp    
 static void               terminal_app_update_mnemonics         (TerminalApp        *app);
 static gboolean           terminal_app_accel_map_load           (gpointer            user_data);
 static gboolean           terminal_app_accel_map_save           (gpointer            user_data);
+static void               terminal_app_unset_urgent_bell        (TerminalWindow     *window,
+                                                                 GdkEvent           *event,
+                                                                 TerminalApp        *app);
 static void               terminal_app_new_window               (TerminalWindow     *window,
                                                                  const gchar        *working_directory,
                                                                  TerminalApp        *app);
@@ -291,6 +294,27 @@ terminal_app_accel_map_load (gpointer user_data)
 
 
 static void
+terminal_app_unset_urgent_bell (TerminalWindow *window,
+                                GdkEvent       *event,
+                                TerminalApp    *app)
+{
+  GtkWidget *toplevel;
+  gboolean   enabled;
+
+  g_object_get (G_OBJECT (app->preferences),
+                "misc-bell-urgent", &enabled,
+                NULL);
+
+  if (!enabled)
+    return;
+
+  toplevel = gtk_widget_get_toplevel (GTK_WIDGET (window));
+  gtk_window_set_urgency_hint (GTK_WINDOW (toplevel), FALSE);
+}
+
+
+
+static void
 terminal_app_take_window (TerminalApp *app,
                           GtkWindow   *window)
 {
@@ -308,6 +332,10 @@ terminal_app_take_window (TerminalApp *app,
                     G_CALLBACK (terminal_app_new_window), app);
   g_signal_connect (G_OBJECT (window), "new-window-with-screen",
                     G_CALLBACK (terminal_app_new_window_with_terminal), app);
+  g_signal_connect (G_OBJECT (window), "focus-in-event",
+                    G_CALLBACK (terminal_app_unset_urgent_bell), app);
+  g_signal_connect (G_OBJECT (window), "key-release-event",
+                    G_CALLBACK (terminal_app_unset_urgent_bell), app);
   app->windows = g_slist_prepend (app->windows, window);
 }
 
@@ -412,6 +440,7 @@ terminal_app_new_window_with_terminal (TerminalWindow *existing,
 {
   GtkWidget *window;
   GdkScreen *screen;
+  glong      width, height;
 
   terminal_return_if_fail (TERMINAL_IS_WINDOW (existing));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (terminal));
@@ -439,6 +468,10 @@ terminal_app_new_window_with_terminal (TerminalWindow *existing,
   gtk_widget_hide (GTK_WIDGET (terminal));
 
   terminal_window_add (TERMINAL_WINDOW (window), terminal);
+
+  /* resize new window to the original terminal geometry */
+  terminal_screen_get_size (terminal, &width, &height);
+  terminal_screen_force_resize_window (terminal, GTK_WINDOW (window), width, height);
 
   gtk_widget_show (window);
 }
@@ -768,7 +801,8 @@ terminal_app_open_window (TerminalApp        *app,
             {
               active_terminal = terminal_window_get_active (TERMINAL_WINDOW (window));
               if (G_LIKELY (active_terminal != NULL))
-                terminal_screen_set_size (active_terminal, width, height);
+                terminal_screen_force_resize_window (active_terminal, GTK_WINDOW (window),
+                                                     width, height);
             }
           if ((mask & XValue) && (mask & YValue))
             gtk_window_move (GTK_WINDOW (window), x, y);

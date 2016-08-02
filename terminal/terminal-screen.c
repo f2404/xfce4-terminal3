@@ -144,6 +144,9 @@ static void       terminal_screen_update_label_orientation      (TerminalScreen 
 static gchar     *terminal_screen_zoom_font                     (TerminalScreen        *screen,
                                                                  gchar                 *font_name,
                                                                  TerminalZoomLevel      zoom);
+static void       terminal_screen_urgent_bell                   (TerminalWidget        *widget,
+                                                                 TerminalScreen        *screen);
+
 
 
 struct _TerminalScreenClass
@@ -1033,6 +1036,7 @@ terminal_screen_update_misc_bell (TerminalScreen *screen)
   gboolean bval;
   g_object_get (G_OBJECT (screen->preferences), "misc-bell", &bval, NULL);
   vte_terminal_set_audible_bell (VTE_TERMINAL (screen->terminal), bval);
+  g_signal_connect (screen->terminal, "bell", G_CALLBACK (terminal_screen_urgent_bell), screen);
 }
 
 
@@ -1179,8 +1183,9 @@ terminal_screen_update_word_chars (TerminalScreen *screen)
   g_object_get (G_OBJECT (screen->preferences), "word-chars", &word_chars, NULL);
   if (G_LIKELY (word_chars != NULL))
     {
-      // TODO: removed functionality, remove
-      //vte_terminal_set_word_chars (VTE_TERMINAL (screen->terminal), word_chars);
+#if VTE_CHECK_VERSION (0, 40, 0)
+      vte_terminal_set_word_char_exceptions (VTE_TERMINAL (screen->terminal), word_chars);
+#endif
       g_free (word_chars);
     }
 }
@@ -1500,10 +1505,10 @@ terminal_screen_update_label_orientation (TerminalScreen *screen)
 
 
 
-static
-gchar* terminal_screen_zoom_font (TerminalScreen *screen,
-                                  gchar *font_name,
-                                  TerminalZoomLevel zoom)
+static gchar*
+terminal_screen_zoom_font (TerminalScreen *screen,
+                           gchar *font_name,
+                           TerminalZoomLevel zoom)
 {
   gdouble               scale;
   PangoFontDescription *font_desc;
@@ -1552,6 +1557,26 @@ gchar* terminal_screen_zoom_font (TerminalScreen *screen,
   g_free(font_name);
 
   return font_zoomed;
+}
+
+
+
+static void
+terminal_screen_urgent_bell (TerminalWidget *widget,
+                             TerminalScreen *screen)
+{
+  GtkWidget *toplevel;
+  gboolean   enabled;
+
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+
+  g_object_get (G_OBJECT (screen->preferences), "misc-bell-urgent", &enabled, NULL);
+
+  if (!enabled)
+    return;
+
+  toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
+  gtk_window_set_urgency_hint (GTK_WINDOW (toplevel), TRUE);
 }
 
 
@@ -1801,11 +1826,6 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
   glong          char_width;
   glong          char_height;
 
-  // Don't need this on gtk>=3.20
-#if GTK_CHECK_VERSION (3,20,0)
-  return;
-#endif
-
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
   terminal_return_if_fail (GTK_IS_WINDOW (window));
@@ -1943,7 +1963,7 @@ terminal_screen_get_working_directory (TerminalScreen *screen)
       file = g_strdup_printf ("/proc/%d/cwd", screen->pid);
 #endif
 
-      length = readlink (file, buffer, sizeof (buffer));
+      length = readlink (file, buffer, sizeof (buffer) - 1);
       if (length > 0 && *buffer == '/')
         {
           buffer[length] = '\0';
@@ -2208,7 +2228,7 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
                             G_CALLBACK (gtk_widget_destroy), screen);
 
   /* button image */
-  image = gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_MENU);
+  image = gtk_image_new_from_icon_name ("window-close-symbolic", GTK_ICON_SIZE_MENU);
   gtk_container_add (GTK_CONTAINER (button), image);
 
   /* show the box and all its widgets */
