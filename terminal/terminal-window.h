@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __TERMINAL_WINDOW_H__
-#define __TERMINAL_WINDOW_H__
+#ifndef TERMINAL_WINDOW_H
+#define TERMINAL_WINDOW_H
 
 #include <terminal/terminal-screen.h>
 #include <terminal/terminal-options.h>
@@ -35,12 +35,12 @@ G_BEGIN_DECLS
 
 typedef struct
 {
-  GtkWindowClass __parent__;
+  GtkWindowClass parent_class;
 } TerminalWindowClass;
 
 typedef struct
 {
-  GtkWindow            __parent__;
+  GtkWindow            parent_instance;
 
   /* if this is a TerminalWindowDropdown */
   guint                drop_down : 1;
@@ -89,23 +89,23 @@ typedef struct
   GtkAction           *action_fullscreen;
 } TerminalWindow;
 
-GType           terminal_window_get_type             (void) G_GNUC_CONST;
+GType           terminal_window_get_type            (void) G_GNUC_CONST;
 
-GtkWidget      *terminal_window_new                  (const gchar        *role,
-                                                      gboolean            fullscreen,
-                                                      TerminalVisibility  menubar,
-                                                      TerminalVisibility  borders,
-                                                      TerminalVisibility  toolbar);
+GtkWidget      *terminal_window_new                 (const gchar        *role,
+                                                     gboolean            fullscreen,
+                                                     TerminalVisibility  menubar,
+                                                     TerminalVisibility  borders,
+                                                     TerminalVisibility  toolbar);
 
-void            terminal_window_add                  (TerminalWindow     *window,
-                                                      TerminalScreen     *screen);
+void            terminal_window_add                 (TerminalWindow     *window,
+                                                     TerminalScreen     *screen);
 
-TerminalScreen *terminal_window_get_active           (TerminalWindow     *window);
+TerminalScreen *terminal_window_get_active          (TerminalWindow     *window);
 
-void            terminal_window_notebook_show_tabs   (TerminalWindow     *window);
+void            terminal_window_notebook_show_tabs  (TerminalWindow     *window);
 
-GSList         *terminal_window_get_restart_command  (TerminalWindow     *window);
+GSList         *terminal_window_get_restart_command (TerminalWindow     *window);
 
 G_END_DECLS
 
-#endif /* !__TERMINAL_WINDOW_H__ */
+#endif /* !TERMINAL_WINDOW_H */

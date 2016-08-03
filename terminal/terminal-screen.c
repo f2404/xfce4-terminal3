@@ -151,12 +151,12 @@ static void       terminal_screen_urgent_bell                   (TerminalWidget 
 
 struct _TerminalScreenClass
 {
-  GtkHBoxClass __parent__;
+  GtkHBoxClass parent_class;
 };
 
 struct _TerminalScreen
 {
-  GtkHBox              __parent__;
+  GtkHBox              parent_instance;
   TerminalPreferences *preferences;
   GtkWidget           *terminal;
   GtkWidget           *scrollbar;
@@ -501,7 +501,7 @@ terminal_screen_preferences_changed (TerminalPreferences *preferences,
     terminal_screen_update_colors (screen);
   else if (strncmp ("font-", name, strlen ("font-")) == 0)
     terminal_screen_update_font (screen);
-  else if (strcmp ("misc-bell", name) == 0)
+  else if (strncmp ("misc-bell", name, strlen ("misc-bell")) == 0)
     terminal_screen_update_misc_bell (screen);
   else if (strcmp ("misc-cursor-blinks", name) == 0)
     terminal_screen_update_misc_cursor_blinks (screen);
@@ -960,7 +960,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
   /* cursor color */
   has_cursor = terminal_preferences_get_color (screen->preferences, "color-cursor", &cursor);
   vte_terminal_set_color_cursor (VTE_TERMINAL (screen->terminal), has_cursor ? &cursor : NULL);
-#if VTE_CHECK_VERSION (0, 44, 2)
+#if VTE_CHECK_VERSION (0, 44, 0)
   vte_terminal_set_color_cursor_foreground (VTE_TERMINAL (screen->terminal),
                                             has_cursor && has_bg ? &bg : NULL);
 #endif
