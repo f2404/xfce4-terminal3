@@ -11,10 +11,12 @@
     <menu action="file-menu">
       <menuitem action="new-tab"/>
       <menuitem action="new-window"/>
+      <menuitem action="undo-close-tab"/>
       <separator/>
       <menuitem action="detach-tab"/>
       <separator/>
       <menuitem action="close-tab"/>
+      <menuitem action="close-other-tabs"/>
       <menuitem action="close-window"/>
     </menu>
     <menu action="edit-menu">
@@ -84,6 +86,7 @@
   <!-- The right click tab menu -->
   <popup name="tab-menu">
     <menuitem action="detach-tab"/>
+    <menuitem action="close-other-tabs"/>
     <menuitem action="set-title"/>
     <separator/>
     <menuitem action="move-tab-left"/>

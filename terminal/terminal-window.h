@@ -77,8 +77,9 @@ typedef struct
   TerminalScreen      *active;
 
   /* cached actions to avoid lookups */
+  GtkAction           *action_undo_close_tab;
   GtkAction           *action_detach_tab;
-  GtkAction           *action_close_tab;
+  GtkAction           *action_close_other_tabs;
   GtkAction           *action_prev_tab;
   GtkAction           *action_next_tab;
   GtkAction           *action_move_tab_left;
@@ -87,6 +88,8 @@ typedef struct
   GtkAction           *action_search_next;
   GtkAction           *action_search_prev;
   GtkAction           *action_fullscreen;
+
+  GQueue              *closed_tabs_list;
 } TerminalWindow;
 
 GType           terminal_window_get_type            (void) G_GNUC_CONST;

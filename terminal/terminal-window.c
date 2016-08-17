@@ -53,6 +53,13 @@
 
 
 
+/* Closed tabs stored info */
+typedef struct
+{
+  gchar *working_directory;
+  gint   position;
+} TerminalWindowTabInfo;
+
 /* Signal identifiers */
 enum
 {
@@ -63,134 +70,146 @@ enum
 
 
 
-static void            terminal_window_finalize                      (GObject                *object);
-static gboolean        terminal_window_delete_event                  (GtkWidget              *widget,
-                                                                      GdkEventAny            *event);
-static gboolean        terminal_window_state_event                   (GtkWidget              *widget,
-                                                                      GdkEventWindowState    *event);
-static void            terminal_window_style_set                     (GtkWidget              *widget,
-                                                                      GtkStyle               *previous_style);
-static gboolean        terminal_window_confirm_close                 (TerminalWindow         *window);
-static void            terminal_window_size_push                     (TerminalWindow         *window);
-static gboolean        terminal_window_size_pop                      (gpointer                data);
-static void            terminal_window_set_size_force_grid           (TerminalWindow         *window,
-                                                                      TerminalScreen         *screen,
-                                                                      glong                   force_grid_width,
-                                                                      glong                   force_grid_height);
-static gboolean        terminal_window_accel_activate                (GtkAccelGroup          *accel_group,
-                                                                      GObject                *acceleratable,
-                                                                      guint                   accel_key,
-                                                                      GdkModifierType         accel_mods,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_update_actions                (TerminalWindow         *window);
-static void            terminal_window_rebuild_tabs_menu             (TerminalWindow         *window);
-static void            terminal_window_notebook_page_switched        (GtkNotebook            *notebook,
-                                                                      GtkWidget              *page,
-                                                                      guint                   page_num,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_notebook_page_reordered       (GtkNotebook            *notebook,
-                                                                      GtkWidget              *child,
-                                                                      guint                   page_num,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_notebook_page_added           (GtkNotebook            *notebook,
-                                                                      GtkWidget              *child,
-                                                                      guint                   page_num,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_notebook_page_removed         (GtkNotebook            *notebook,
-                                                                      GtkWidget              *child,
-                                                                      guint                   page_num,
-                                                                      TerminalWindow         *window);
-static gboolean        terminal_window_notebook_button_press_event   (GtkNotebook            *notebook,
-                                                                      GdkEventButton         *event,
-                                                                      TerminalWindow         *window);
-static gboolean        terminal_window_notebook_button_release_event (GtkNotebook            *notebook,
-                                                                      GdkEventButton         *event,
-                                                                      TerminalWindow         *window);
-static gboolean        terminal_window_notebook_scroll_event         (GtkNotebook            *notebook,
-                                                                      GdkEventScroll         *event,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_notebook_drag_data_received   (GtkWidget              *widget,
-                                                                      GdkDragContext         *context,
-                                                                      gint                    x,
-                                                                      gint                    y,
-                                                                      GtkSelectionData       *selection_data,
-                                                                      guint                   info,
-                                                                      guint                   time,
-                                                                      TerminalWindow         *window);
-static GtkNotebook    *terminal_window_notebook_create_window        (GtkNotebook            *notebook,
-                                                                      GtkWidget              *child,
-                                                                      gint                    x,
-                                                                      gint                    y,
-                                                                      TerminalWindow         *window);
-static GtkWidget      *terminal_window_get_context_menu              (TerminalScreen         *screen,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_notify_title                  (TerminalScreen         *screen,
-                                                                      GParamSpec             *pspec,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_set_encoding           (GtkAction              *action,
-                                                                      const gchar            *charset,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_new_tab                (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_new_window             (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_detach_tab             (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_close_tab              (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_close_window           (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_copy                   (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_paste                  (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_paste_selection        (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_select_all             (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_prefs                  (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_show_menubar           (GtkToggleAction        *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_show_toolbar           (GtkToggleAction        *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_show_borders           (GtkToggleAction        *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_fullscreen             (GtkToggleAction        *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_zoom_in                (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_zoom_out               (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_zoom_reset             (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_prev_tab               (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_next_tab               (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_move_tab_left          (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_move_tab_right         (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_goto_tab               (GtkRadioAction         *action,
-                                                                      GtkNotebook            *notebook);
-static void            terminal_window_action_set_title              (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_search                 (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_search_next            (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_search_prev            (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_reset                  (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_reset_and_clear        (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_contents               (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_action_about                  (GtkAction              *action,
-                                                                      TerminalWindow         *window);
-static void            terminal_window_zoom_update_screens           (TerminalWindow         *window);
+static void         terminal_window_finalize                      (GObject                *object);
+static gboolean     terminal_window_delete_event                  (GtkWidget              *widget,
+                                                                   GdkEventAny            *event);
+static gboolean     terminal_window_state_event                   (GtkWidget              *widget,
+                                                                   GdkEventWindowState    *event);
+static void         terminal_window_style_set                     (GtkWidget              *widget,
+                                                                   GtkStyle               *previous_style);
+static gboolean     terminal_window_confirm_close                 (TerminalWindow         *window);
+static void         terminal_window_size_push                     (TerminalWindow         *window);
+static gboolean     terminal_window_size_pop                      (gpointer                data);
+static void         terminal_window_set_size_force_grid           (TerminalWindow         *window,
+                                                                   TerminalScreen         *screen,
+                                                                   glong                   force_grid_width,
+                                                                   glong                   force_grid_height);
+static gboolean     terminal_window_accel_activate                (GtkAccelGroup          *accel_group,
+                                                                   GObject                *acceleratable,
+                                                                   guint                   accel_key,
+                                                                   GdkModifierType         accel_mods,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_update_actions                (TerminalWindow         *window);
+static void         terminal_window_rebuild_tabs_menu             (TerminalWindow         *window);
+static void         terminal_window_notebook_page_switched        (GtkNotebook            *notebook,
+                                                                   GtkWidget              *page,
+                                                                   guint                   page_num,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_notebook_page_reordered       (GtkNotebook            *notebook,
+                                                                   GtkWidget              *child,
+                                                                   guint                   page_num,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_notebook_page_added           (GtkNotebook            *notebook,
+                                                                   GtkWidget              *child,
+                                                                   guint                   page_num,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_notebook_page_removed         (GtkNotebook            *notebook,
+                                                                   GtkWidget              *child,
+                                                                   guint                   page_num,
+                                                                   TerminalWindow         *window);
+static gboolean     terminal_window_notebook_event_in_allocation  (gint                    event_x,
+                                                                   gint                    event_y,
+                                                                   GtkWidget              *widget);
+static gboolean     terminal_window_notebook_button_press_event   (GtkNotebook            *notebook,
+                                                                   GdkEventButton         *event,
+                                                                   TerminalWindow         *window);
+static gboolean     terminal_window_notebook_button_release_event (GtkNotebook            *notebook,
+                                                                   GdkEventButton         *event,
+                                                                   TerminalWindow         *window);
+static gboolean     terminal_window_notebook_scroll_event         (GtkNotebook            *notebook,
+                                                                   GdkEventScroll         *event,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_notebook_drag_data_received   (GtkWidget              *widget,
+                                                                   GdkDragContext         *context,
+                                                                   gint                    x,
+                                                                   gint                    y,
+                                                                   GtkSelectionData       *selection_data,
+                                                                   guint                   info,
+                                                                   guint                   time,
+                                                                   TerminalWindow         *window);
+static GtkNotebook *terminal_window_notebook_create_window        (GtkNotebook            *notebook,
+                                                                   GtkWidget              *child,
+                                                                   gint                    x,
+                                                                   gint                    y,
+                                                                   TerminalWindow         *window);
+static GtkWidget   *terminal_window_get_context_menu              (TerminalScreen         *screen,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_notify_title                  (TerminalScreen         *screen,
+                                                                   GParamSpec             *pspec,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_set_encoding           (GtkAction              *action,
+                                                                   const gchar            *charset,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_new_tab                (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_new_window             (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_undo_close_tab         (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_detach_tab             (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_close_tab              (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_close_other_tabs       (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_close_window           (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_copy                   (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_paste                  (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_paste_selection        (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_select_all             (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_prefs                  (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_show_menubar           (GtkToggleAction        *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_show_toolbar           (GtkToggleAction        *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_show_borders           (GtkToggleAction        *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_fullscreen             (GtkToggleAction        *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_zoom_in                (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_zoom_out               (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_zoom_reset             (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_prev_tab               (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_next_tab               (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_move_tab_left          (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_move_tab_right         (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_goto_tab               (GtkRadioAction         *action,
+                                                                   GtkNotebook            *notebook);
+static void         terminal_window_action_set_title              (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_search                 (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_search_next            (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_search_prev            (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_reset                  (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_reset_and_clear        (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_contents               (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_action_about                  (GtkAction              *action,
+                                                                   TerminalWindow         *window);
+static void         terminal_window_zoom_update_screens           (TerminalWindow         *window);
+static void         terminal_window_switch_tab                    (GtkNotebook            *notebook,
+                                                                   gboolean                switch_left);
+static void         terminal_window_move_tab                      (GtkNotebook            *notebook,
+                                                                   gboolean                move_left);
+static void         terminal_window_tab_info_free                 (TerminalWindowTabInfo  *tab_info);
 
 
 
@@ -205,8 +224,10 @@ static const GtkActionEntry action_entries[] =
   { "file-menu", NULL, N_ ("_File"), NULL, NULL, NULL, },
     { "new-tab", "tab-new", N_ ("Open _Tab"), "<control><shift>t", N_ ("Open a new terminal tab"), G_CALLBACK (terminal_window_action_new_tab), },
     { "new-window", "window-new", N_ ("Open T_erminal"), "<control><shift>n", N_ ("Open a new terminal window"), G_CALLBACK (terminal_window_action_new_window), },
+    { "undo-close-tab", "document-revert", N_ ("_Undo Close Tab"), NULL, NULL, G_CALLBACK (terminal_window_action_undo_close_tab), },
     { "detach-tab", NULL, N_ ("_Detach Tab"), "<control><shift>d", NULL, G_CALLBACK (terminal_window_action_detach_tab), },
     { "close-tab", "window-close", N_ ("Close T_ab"), "<control><shift>w", NULL, G_CALLBACK (terminal_window_action_close_tab), },
+    { "close-other-tabs", "edit-clear", N_ ("Close Other Ta_bs"), NULL, NULL, G_CALLBACK (terminal_window_action_close_other_tabs), },
     { "close-window", "application-exit", N_ ("Close _Window"), "<control><shift>q", NULL, G_CALLBACK (terminal_window_action_close_window), },
   { "edit-menu", NULL, N_ ("_Edit"), NULL, NULL, NULL, },
     { "copy", "edit-copy", N_ ("_Copy"), "<control><shift>c", N_ ("Copy to clipboard"), G_CALLBACK (terminal_window_action_copy), },
@@ -306,6 +327,7 @@ terminal_window_init (TerminalWindow *window)
 
   window->font = NULL;
   window->zoom = TERMINAL_ZOOM_LEVEL_DEFAULT;
+  window->closed_tabs_list = g_queue_new ();
 
   /* try to set the rgba colormap so vte can use real transparency */
   screen = gtk_window_get_screen (GTK_WINDOW (window));
@@ -377,8 +399,9 @@ terminal_window_init (TerminalWindow *window)
       G_CALLBACK (terminal_window_action_set_encoding), window);
 
   /* cache action pointers */
+  window->action_undo_close_tab = gtk_action_group_get_action (window->action_group, "undo-close-tab");
   window->action_detach_tab = gtk_action_group_get_action (window->action_group, "detach-tab");
-  window->action_close_tab = gtk_action_group_get_action (window->action_group, "close-tab");
+  window->action_close_other_tabs = gtk_action_group_get_action (window->action_group, "close-other-tabs");
   window->action_prev_tab = gtk_action_group_get_action (window->action_group, "prev-tab");
   window->action_next_tab = gtk_action_group_get_action (window->action_group, "next-tab");
   window->action_move_tab_left = gtk_action_group_get_action (window->action_group, "move-tab-left");
@@ -409,6 +432,8 @@ terminal_window_finalize (GObject *object)
 
   g_slist_free (window->tabs_menu_actions);
   g_free (window->font);
+  g_queue_foreach (window->closed_tabs_list, (GFunc) terminal_window_tab_info_free, NULL);
+  g_queue_free (window->closed_tabs_list);
 
   (*G_OBJECT_CLASS (terminal_window_parent_class)->finalize) (object);
 }
@@ -672,14 +697,17 @@ terminal_window_update_actions (TerminalWindow *window)
   /* determine the number of pages */
   n_pages = gtk_notebook_get_n_pages (notebook);
 
-  /* "Detach Tab" is only sensitive if we have at least two pages */
+  /* "Detach Tab", "Close Other Tabs" and move tab actions are only sensitive
+   * if we have at least two pages */
   gtk_action_set_sensitive (window->action_detach_tab, (n_pages > 1));
+  gtk_action_set_sensitive (window->action_close_other_tabs, n_pages > 1);
+  gtk_action_set_sensitive (window->action_move_tab_left, n_pages > 1);
+  gtk_action_set_sensitive (window->action_move_tab_right, n_pages > 1);
 
-  /* always allow "Close Tab" action (bug 12490) */
-  gtk_action_set_sensitive (window->action_close_tab, TRUE);
+  gtk_action_set_sensitive (window->action_undo_close_tab, !g_queue_is_empty (window->closed_tabs_list));
 
   /* update the actions for the current terminal screen */
- if (G_LIKELY (window->active != NULL))
+  if (G_LIKELY (window->active != NULL))
     {
       page_num = gtk_notebook_page_num (notebook, GTK_WIDGET (window->active));
 
@@ -690,10 +718,7 @@ terminal_window_update_actions (TerminalWindow *window)
       gtk_action_set_sensitive (window->action_prev_tab,
                                 (cycle_tabs && n_pages > 1) || (page_num > 0));
       gtk_action_set_sensitive (window->action_next_tab,
-                                (cycle_tabs && n_pages > 1 ) || (page_num < n_pages - 1));
-
-      gtk_action_set_sensitive (window->action_move_tab_left, n_pages > 1);
-      gtk_action_set_sensitive (window->action_move_tab_right, n_pages > 1);
+                                (cycle_tabs && n_pages > 1) || (page_num < n_pages - 1));
 
       gtk_action_set_sensitive (window->action_copy,
                                 terminal_screen_has_selection (window->active));
@@ -815,9 +840,6 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
       /* set the new window title */
       terminal_window_notify_title (active, NULL, window);
 
-      /* update actions in the window */
-      terminal_window_update_actions (window);
-
       /* reset the activity counter */
       terminal_screen_reset_activity (active);
 
@@ -829,6 +851,9 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
       if (G_LIKELY (!was_null))
         terminal_screen_set_window_geometry_hints (active, GTK_WINDOW (window));
     }
+
+  /* update actions in the window */
+  terminal_window_update_actions (window);
 }
 
 
@@ -910,6 +935,7 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
   GtkWidget *new_page;
   gint       new_page_num;
   gint       npages;
+  TerminalWindowTabInfo *tab_info;
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (child));
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
@@ -936,6 +962,12 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
       return;
     }
 
+  /* store info on the tab being closed */
+  tab_info = g_new (TerminalWindowTabInfo, 1);
+  tab_info->position = page_num;
+  tab_info->working_directory = g_strdup (terminal_screen_get_working_directory (TERMINAL_SCREEN (child)));
+  g_queue_push_tail (window->closed_tabs_list, tab_info);
+
   /* show the tabs when needed */
   terminal_window_notebook_show_tabs (window);
 
@@ -948,24 +980,27 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
   terminal_window_notebook_page_switched (notebook, new_page, new_page_num, window);
 }
 
+
+
 static gboolean
-terminal_window_notebook_event_in_allocation (gint event_x,
-                                              gint event_y,
+terminal_window_notebook_event_in_allocation (gint       event_x,
+                                              gint       event_y,
                                               GtkWidget *widget)
 {
-  cairo_rectangle_int_t allocation;
+  GtkAllocation allocation;
+
   gtk_widget_get_allocation (widget, &allocation);
 
-  if (event_x >= allocation.x \
-      && event_x <= allocation.x + allocation.width \
-      && event_y >= allocation.y \
-      && event_y <= allocation.y + allocation.height)
+  if (event_x >= allocation.x && event_x <= allocation.x + allocation.width
+      && event_y >= allocation.y && event_y <= allocation.y + allocation.height)
     {
       return TRUE;
     }
 
   return FALSE;
 }
+
+
 
 static gboolean
 terminal_window_notebook_button_press_event (GtkNotebook    *notebook,
@@ -1070,10 +1105,12 @@ terminal_window_notebook_scroll_event (GtkNotebook    *notebook,
     case GDK_SCROLL_DOWN:
       gtk_notebook_next_page (notebook);
       return TRUE;
+
     case GDK_SCROLL_LEFT:
     case GDK_SCROLL_UP:
       gtk_notebook_prev_page (notebook);
       return TRUE;
+
     case GDK_SCROLL_SMOOTH:
       switch (gtk_notebook_get_tab_pos (notebook)) {
         case GTK_POS_LEFT:
@@ -1083,6 +1120,7 @@ terminal_window_notebook_scroll_event (GtkNotebook    *notebook,
           else if (event->delta_y < 0)
             gtk_notebook_prev_page (notebook);
           break;
+
         case GTK_POS_TOP:
         case GTK_POS_BOTTOM:
           if (event->delta_x > 0)
@@ -1114,7 +1152,9 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
   GtkWidget  *child, *label;
   gint        i, n_pages;
   gboolean    succeed = FALSE;
-  cairo_rectangle_int_t allocation;
+  GtkAllocation allocation;
+  TerminalWindow *orig_window;
+  TerminalWindowTabInfo *tab_info;
 
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (widget));
@@ -1179,6 +1219,13 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
           /* release reference */
           g_object_unref (G_OBJECT (*screen));
           g_object_unref (G_OBJECT (window));
+
+          /* erase last closed tabs entry from the original window as we don't want it on DND */
+          orig_window = TERMINAL_WINDOW (gtk_widget_get_toplevel (notebook));
+          tab_info = g_queue_pop_tail (orig_window->closed_tabs_list);
+          terminal_window_tab_info_free (tab_info);
+          /* and update action to make the undo action inactive */
+          terminal_window_update_actions (orig_window);
         }
 
       /* looks like everything worked out */
@@ -1200,6 +1247,7 @@ terminal_window_notebook_create_window (GtkNotebook    *notebook,
                                         TerminalWindow *window)
 {
   TerminalScreen *screen;
+  TerminalWindowTabInfo *tab_info;
 
   terminal_return_val_if_fail (TERMINAL_IS_WINDOW (window), NULL);
   terminal_return_val_if_fail (TERMINAL_IS_SCREEN (child), NULL);
@@ -1226,6 +1274,12 @@ terminal_window_notebook_create_window (GtkNotebook    *notebook,
 
       /* release our reference */
       g_object_unref (G_OBJECT (screen));
+
+      /* erase last closed tabs entry as we don't want it on detach */
+      tab_info = g_queue_pop_tail (window->closed_tabs_list);
+      terminal_window_tab_info_free (tab_info);
+      /* and update action to make the undo action inactive */
+      terminal_window_update_actions (window);
     }
 
   return NULL;
@@ -1237,12 +1291,10 @@ static GtkWidget *
 terminal_window_get_context_menu (TerminalScreen  *screen,
                                   TerminalWindow  *window)
 {
-  GtkWidget *popup;
+  GtkWidget *popup = NULL;
 
-  if (G_UNLIKELY (screen != window->active))
-    return NULL;
-
-  popup = gtk_ui_manager_get_widget (window->ui_manager, "/popup-menu");
+  if (G_LIKELY (screen == window->active))
+    popup = gtk_ui_manager_get_widget (window->ui_manager, "/popup-menu");
 
   return popup;
 }
@@ -1288,38 +1340,81 @@ terminal_window_action_set_encoding (GtkAction      *action,
 
 
 static void
-terminal_window_action_new_tab (GtkAction       *action,
-                                TerminalWindow  *window)
+terminal_window_action_new_tab (GtkAction      *action,
+                                TerminalWindow *window)
 {
-  const gchar *directory;
-  GtkWidget   *terminal;
+  const gchar    *directory = NULL;
+  gchar          *default_dir;
+  TerminalScreen *terminal;
 
-  terminal = g_object_new (TERMINAL_TYPE_SCREEN, NULL);
+  terminal = TERMINAL_SCREEN (g_object_new (TERMINAL_TYPE_SCREEN, NULL));
+  g_object_get (G_OBJECT (window->preferences), "misc-default-working-dir", &default_dir, NULL);
 
-  if (G_LIKELY (window->active != NULL))
-    {
-      directory = terminal_screen_get_working_directory (window->active);
-      terminal_screen_set_working_directory (TERMINAL_SCREEN (terminal),
-                                             directory);
-    }
+  if (g_strcmp0 (default_dir, "") != 0)
+    directory = default_dir;
+  else if (G_LIKELY (window->active != NULL))
+    directory = terminal_screen_get_working_directory (window->active);
 
-  terminal_window_add (window, TERMINAL_SCREEN (terminal));
-  terminal_screen_launch_child (TERMINAL_SCREEN (terminal));
+  if (directory != NULL)
+    terminal_screen_set_working_directory (terminal, directory);
+
+  g_free (default_dir);
+
+  terminal_window_add (window, terminal);
+  terminal_screen_launch_child (terminal);
 }
 
 
 
 static void
-terminal_window_action_new_window (GtkAction       *action,
-                                   TerminalWindow  *window)
+terminal_window_action_new_window (GtkAction      *action,
+                                   TerminalWindow *window)
 {
-  const gchar *directory;
+  const gchar *directory = NULL;
+  gchar       *default_dir;
 
-  if (G_LIKELY (window->active != NULL))
+  g_object_get (G_OBJECT (window->preferences), "misc-default-working-dir", &default_dir, NULL);
+
+  if (g_strcmp0 (default_dir, "") != 0)
+    directory = default_dir;
+  else if (G_LIKELY (window->active != NULL))
+    directory = terminal_screen_get_working_directory (window->active);
+
+  if (directory != NULL)
+    g_signal_emit (G_OBJECT (window), window_signals[NEW_WINDOW], 0, directory);
+
+  g_free (default_dir);
+}
+
+
+
+static void
+terminal_window_action_undo_close_tab (GtkAction      *action,
+                                       TerminalWindow *window)
+{
+  GtkWidget *terminal;
+  TerminalWindowTabInfo *tab_info;
+
+  terminal = g_object_new (TERMINAL_TYPE_SCREEN, NULL);
+
+  if (G_LIKELY (!g_queue_is_empty (window->closed_tabs_list)))
     {
-      directory = terminal_screen_get_working_directory (window->active);
-      g_signal_emit (G_OBJECT (window), window_signals[NEW_WINDOW], 0, directory);
+      /* get info on the last closed tab and remove it from the list */
+      tab_info = g_queue_pop_tail (window->closed_tabs_list);
+
+      /* set info to the new tab */
+      terminal_window_add (window, TERMINAL_SCREEN (terminal));
+      terminal_screen_set_working_directory (TERMINAL_SCREEN (terminal),
+                                             tab_info->working_directory);
+      gtk_notebook_reorder_child (GTK_NOTEBOOK (window->notebook), terminal, tab_info->position);
+
+      /* free info */
+      terminal_window_tab_info_free (tab_info);
     }
+  else
+    terminal_window_add (window, TERMINAL_SCREEN (terminal));
+
+  terminal_screen_launch_child (TERMINAL_SCREEN (terminal));
 }
 
 
@@ -1337,8 +1432,8 @@ terminal_window_action_detach_tab (GtkAction      *action,
 
 
 static void
-terminal_window_action_close_tab (GtkAction       *action,
-                                  TerminalWindow  *window)
+terminal_window_action_close_tab (GtkAction      *action,
+                                  TerminalWindow *window)
 {
   if (G_LIKELY (window->active != NULL))
     gtk_widget_destroy (GTK_WIDGET (window->active));
@@ -1347,8 +1442,28 @@ terminal_window_action_close_tab (GtkAction       *action,
 
 
 static void
-terminal_window_action_close_window (GtkAction       *action,
-                                     TerminalWindow  *window)
+terminal_window_action_close_other_tabs (GtkAction      *action,
+                                         TerminalWindow *window)
+{
+    gint         npages, n;
+    GtkWidget   *child;
+    GtkNotebook *notebook = GTK_NOTEBOOK (window->notebook);
+
+    npages = gtk_notebook_get_n_pages (notebook);
+    child = gtk_notebook_get_nth_page (notebook,
+                                       gtk_notebook_get_current_page (notebook));
+    /* move current page to the beginning */
+    gtk_notebook_reorder_child (notebook, child, 0);
+    /* remove the others */
+    for (n = npages - 1; n > 0; n--)
+      gtk_notebook_remove_page (notebook, n);
+}
+
+
+
+static void
+terminal_window_action_close_window (GtkAction      *action,
+                                     TerminalWindow *window)
 {
   if (terminal_window_confirm_close (window))
     gtk_widget_destroy (GTK_WIDGET (window));
@@ -1357,8 +1472,8 @@ terminal_window_action_close_window (GtkAction       *action,
 
 
 static void
-terminal_window_action_copy (GtkAction       *action,
-                             TerminalWindow  *window)
+terminal_window_action_copy (GtkAction      *action,
+                             TerminalWindow *window)
 {
   if (G_LIKELY (window->active != NULL))
     terminal_screen_copy_clipboard (window->active);
@@ -1367,8 +1482,8 @@ terminal_window_action_copy (GtkAction       *action,
 
 
 static void
-terminal_window_action_paste (GtkAction       *action,
-                              TerminalWindow  *window)
+terminal_window_action_paste (GtkAction      *action,
+                              TerminalWindow *window)
 {
   if (G_LIKELY (window->active != NULL))
     terminal_screen_paste_clipboard (window->active);
@@ -1428,9 +1543,14 @@ terminal_window_action_prefs (GtkAction      *action,
 
   if (window->preferences_dialog != NULL)
     {
-      gtk_window_set_transient_for (GTK_WINDOW (window->preferences_dialog), GTK_WINDOW (window));
+      /* do not set this in fullscreen mode as preferences would be hidden behind the terminal window */
+      if (!gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (window->action_fullscreen)))
+        gtk_window_set_transient_for (GTK_WINDOW (window->preferences_dialog), GTK_WINDOW (window));
+
+      /* move preferences on top in dropdown mode */
       if (window->drop_down)
         gtk_window_set_keep_above (GTK_WINDOW (window->preferences_dialog), TRUE);
+
       gtk_window_present (GTK_WINDOW (window->preferences_dialog));
     }
 }
@@ -1567,13 +1687,7 @@ static void
 terminal_window_action_prev_tab (GtkAction       *action,
                                  TerminalWindow  *window)
 {
-  gint page_num;
-  gint n_pages;
-
-  page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook));
-  n_pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->notebook));
-  gtk_notebook_set_current_page (GTK_NOTEBOOK (window->notebook),
-                                 (page_num - 1) % n_pages);
+  terminal_window_switch_tab (GTK_NOTEBOOK (window->notebook), TRUE);
 }
 
 
@@ -1582,13 +1696,7 @@ static void
 terminal_window_action_next_tab (GtkAction       *action,
                                  TerminalWindow  *window)
 {
-  gint page_num;
-  gint n_pages;
-
-  page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook));
-  n_pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->notebook));
-  gtk_notebook_set_current_page (GTK_NOTEBOOK (window->notebook),
-                                 (page_num + 1) % n_pages);
+  terminal_window_switch_tab (GTK_NOTEBOOK (window->notebook), FALSE);
 }
 
 
@@ -1597,16 +1705,7 @@ static void
 terminal_window_action_move_tab_left (GtkAction      *action,
                                       TerminalWindow *window)
 {
-  gint       page_num;
-  gint       last_page;
-  GtkWidget *page;
-
-  page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook));
-  last_page = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->notebook)) - 1;
-  page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->notebook), page_num);
-
-  gtk_notebook_reorder_child (GTK_NOTEBOOK (window->notebook),
-                              page, page_num == 0 ? last_page : page_num - 1);
+  terminal_window_move_tab (GTK_NOTEBOOK (window->notebook), TRUE);
 }
 
 
@@ -1615,16 +1714,7 @@ static void
 terminal_window_action_move_tab_right (GtkAction      *action,
                                        TerminalWindow *window)
 {
-  gint       page_num;
-  gint       last_page;
-  GtkWidget *page;
-
-  page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook));
-  last_page = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->notebook)) - 1;
-  page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->notebook), page_num);
-
-  gtk_notebook_reorder_child (GTK_NOTEBOOK (window->notebook),
-                              page, page_num == last_page ? 0 : page_num + 1);
+  terminal_window_move_tab (GTK_NOTEBOOK (window->notebook), FALSE);
 }
 
 
@@ -1874,19 +1964,8 @@ static void
 terminal_window_action_contents (GtkAction       *action,
                                  TerminalWindow  *window)
 {
-  gboolean shortcuts_no_helpkey;
-  gboolean ret;
-
-  g_object_get (G_OBJECT (window->preferences),
-                "shortcuts-no-helpkey", &shortcuts_no_helpkey,
-                NULL);
-
-  if (!shortcuts_no_helpkey)
-    /* open the Terminal user manual */
-    xfce_dialog_show_help (GTK_WINDOW (window), "terminal", NULL, NULL);
-  else
-    /* propagate to the terminal */
-    g_signal_emit_by_name (G_OBJECT (window->active), "key-press-event", gtk_get_current_event (), &ret);
+  /* open the Terminal user manual */
+  xfce_dialog_show_help (GTK_WINDOW (window), "terminal", NULL, NULL);
 }
 
 
@@ -1916,6 +1995,52 @@ terminal_window_zoom_update_screens (TerminalWindow *window)
       screen = TERMINAL_SCREEN (gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->notebook), n));
       terminal_screen_update_font (screen);
     }
+}
+
+
+
+static void
+terminal_window_switch_tab (GtkNotebook *notebook,
+                            gboolean     switch_left)
+{
+  gint page_num;
+  gint n_pages;
+
+  page_num = gtk_notebook_get_current_page (notebook);
+  n_pages = gtk_notebook_get_n_pages (notebook);
+  gtk_notebook_set_current_page (notebook,
+                                 (switch_left ? page_num - 1 : page_num + 1) % n_pages);
+}
+
+
+
+static void
+terminal_window_move_tab (GtkNotebook *notebook,
+                          gboolean     move_left)
+{
+  gint       page_num;
+  gint       last_page;
+  GtkWidget *page;
+
+  page_num = gtk_notebook_get_current_page (notebook);
+  last_page = gtk_notebook_get_n_pages (notebook) - 1;
+  page = gtk_notebook_get_nth_page (notebook, page_num);
+
+  if (move_left)
+    gtk_notebook_reorder_child (notebook, page,
+                                page_num == 0 ? last_page : page_num - 1);
+  else
+    gtk_notebook_reorder_child (notebook, page,
+                                page_num == last_page ? 0 : page_num + 1);
+}
+
+
+
+static void
+terminal_window_tab_info_free (TerminalWindowTabInfo *tab_info)
+{
+  g_free (tab_info->working_directory);
+  g_free (tab_info);
 }
 
 
@@ -2068,7 +2193,7 @@ terminal_window_notebook_show_tabs (TerminalWindow *window)
       /* store size */
       terminal_window_size_push (window);
 
-      /* show or hdie the tabs */
+      /* show or hide the tabs */
       gtk_notebook_set_show_tabs (notebook, show_tabs);
 
       /* update the window geometry */
