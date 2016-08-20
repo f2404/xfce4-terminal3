@@ -1839,8 +1839,6 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
     gtk_window_resize (window, width, height);
   else
     gtk_window_set_default_size (window, width, height);
-
-  gtk_widget_grab_focus (screen);
 }
 
 
@@ -2294,4 +2292,14 @@ terminal_screen_search_find_previous (TerminalScreen *screen)
 {
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   vte_terminal_search_find_previous (VTE_TERMINAL (screen->terminal));
+}
+
+
+
+void
+terminal_screen_set_input_enabled (TerminalScreen *screen,
+                                   gboolean        enabled)
+{
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  vte_terminal_set_input_enabled (VTE_TERMINAL (screen->terminal), enabled);
 }
