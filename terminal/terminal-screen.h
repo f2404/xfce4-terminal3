@@ -21,6 +21,7 @@
 #define TERMINAL_SCREEN_H
 
 #include <gtk/gtk.h>
+#include <terminal/terminal-private.h>
 
 G_BEGIN_DECLS
 
@@ -40,6 +41,7 @@ void         terminal_screen_launch_child                 (TerminalScreen *scree
 
 void         terminal_screen_set_custom_command           (TerminalScreen *screen,
                                                            gchar         **command);
+const gchar *terminal_screen_get_custom_title             (TerminalScreen *screen);
 void         terminal_screen_set_custom_title             (TerminalScreen *screen,
                                                            const gchar    *title);
 
@@ -111,6 +113,10 @@ void         terminal_screen_update_font                  (TerminalScreen *scree
 
 void         terminal_screen_set_input_enabled            (TerminalScreen *screen,
                                                            gboolean        enabled);
+
+void         terminal_screen_save_contents                (TerminalScreen *screen,
+                                                           GOutputStream  *stream,
+                                                           GError         *error);
 
 G_END_DECLS
 

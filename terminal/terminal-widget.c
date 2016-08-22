@@ -36,28 +36,11 @@
 #include <terminal/terminal-preferences.h>
 #include <terminal/terminal-widget.h>
 #include <terminal/terminal-private.h>
-
-#if VTE_CHECK_VERSION (0, 46, 00)
-#define PCRE2_CODE_UNIT_WIDTH 0
-#include <pcre2.h>
-#endif
+#include <terminal/terminal-regex.h>
 
 
 
 #define MAILTO          "mailto:"
-#define USERCHARS       "-[:alnum:]\\Q_.+\\E"
-#define USERCHARS_CLASS "[" USERCHARS "]"
-#define PASSCHARS_CLASS "[-[:alnum:]\\Q,?;.:/!%$^*&~\"#'\\E]"
-#define HOSTCHARS_CLASS "[-[:alnum:]]"
-#define HOSTNAME        HOSTCHARS_CLASS "+(?:\\." HOSTCHARS_CLASS "+)*"
-#define IPV6ADDRESS     "\\[(?:[[:xdigit:]]{0,4}:){2,7}[[:xdigit:]]{0,4}\\]"
-#define HOST            "(?:" HOSTNAME "|" IPV6ADDRESS ")"
-#define PORT            "(?:\\:[[:digit:]]{1,5})?"
-#define PATHCHARS_CLASS "[-[:alnum:]\\Q_$.+!*,;@&=?/:~#'%\\E]"
-#define PATHTERM_CLASS  "[[:alnum:]\\Q_$+*@&=/~#%\\E]"
-#define SCHEME          "(?:news:|telnet:|nntp:|file:\\/|https?:|ftps?:|sftp:|webcal:|magnet:)"
-#define USERPASS        USERCHARS_CLASS "+(?:" PASSCHARS_CLASS "+)?"
-#define URLPATH         "(?:(?:\\(" PATHCHARS_CLASS "*\\)|" PATHCHARS_CLASS ")*(?:\\(" PATHCHARS_CLASS "*\\)|" PATHTERM_CLASS "))?"
 
 
 
@@ -83,11 +66,11 @@ typedef struct
 
 static const TerminalRegexPattern regex_patterns[] =
 {
-  { SCHEME "//(?:" USERPASS "\\@)?" HOST PORT URLPATH, PATTERN_TYPE_FULL_HTTP },
-  { "(?:www[[:digit:]]{0,3}|ftp)" HOSTCHARS_CLASS "*\\." HOST PORT URLPATH, PATTERN_TYPE_HTTP },
-  { "(?:" MAILTO ")?" USERCHARS_CLASS "[" USERCHARS ".]*\\@" HOSTCHARS_CLASS "+\\." HOST, PATTERN_TYPE_EMAIL },
-  { "news:[[:alnum:]\\Q^_{|}~!\"#$%&'()*+,./;:=?`\\E]+", PATTERN_TYPE_FULL_HTTP },
-  { "magnet:[-[:alnum:]\\Q^_{|}~!\"#$%&'()*+,./;:=?`\\E]+", PATTERN_TYPE_FULL_HTTP }
+  { REGEX_URL_AS_IS, PATTERN_TYPE_FULL_HTTP },
+  { REGEX_URL_HTTP,  PATTERN_TYPE_HTTP },
+  { REGEX_URL_FILE,  PATTERN_TYPE_FULL_HTTP },
+  { REGEX_EMAIL,     PATTERN_TYPE_EMAIL },
+  { REGEX_NEWS_MAN,  PATTERN_TYPE_FULL_HTTP },
 };
 
 
@@ -728,11 +711,7 @@ terminal_widget_update_highlight_urls (TerminalWidget *widget)
 {
   guint                       i;
   gboolean                    highlight_urls;
-#if VTE_CHECK_VERSION (0, 46, 00)
-  VteRegex                   *regex;
-#else
   GRegex                     *regex;
-#endif
   const TerminalRegexPattern *pattern;
   GError                     *error;
 
@@ -764,7 +743,7 @@ terminal_widget_update_highlight_urls (TerminalWidget *widget)
 
           /* build the regex */
           error = NULL;
-#if VTE_CHECK_VERSION (0, 46, 00)
+#if VTE_CHECK_VERSION (0, 45, 90)
           regex = vte_regex_new_for_match (pattern->pattern, -1,
                                            PCRE2_CASELESS | PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_MULTILINE,
                                            &error);
@@ -782,21 +761,12 @@ terminal_widget_update_highlight_urls (TerminalWidget *widget)
             }
 
           /* set the new regular expression */
-#if VTE_CHECK_VERSION (0, 46, 00)
-          widget->regex_tags[i] = vte_terminal_match_add_regex (VTE_TERMINAL (widget),
-                                                                regex, 0);
-#else
           widget->regex_tags[i] = vte_terminal_match_add_gregex (VTE_TERMINAL (widget),
                                                                  regex, 0);
-#endif
           vte_terminal_match_set_cursor_type (VTE_TERMINAL (widget),
                                               widget->regex_tags[i], GDK_HAND2);
           /* release the regex owned by vte now */
-#if VTE_CHECK_VERSION (0, 46, 00)
-          vte_regex_unref (regex);
-#else
           g_regex_unref (regex);
-#endif
         }
     }
 }

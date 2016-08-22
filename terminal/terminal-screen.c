@@ -44,7 +44,6 @@
 #include <terminal/terminal-enum-types.h>
 #include <terminal/terminal-image-loader.h>
 #include <terminal/terminal-marshal.h>
-#include <terminal/terminal-private.h>
 #include <terminal/terminal-screen.h>
 #include <terminal/terminal-widget.h>
 #include <terminal/terminal-window.h>
@@ -730,7 +729,8 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
   if (toplevel != NULL && gtk_widget_get_realized (toplevel))
     {
 #ifdef GDK_WINDOWING_X11
-      result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) gdk_x11_window_get_xid (gtk_widget_get_window (toplevel)));
+      if (GDK_IS_X11_WINDOW (gtk_widget_get_window (toplevel)))
+        result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) gdk_x11_window_get_xid (gtk_widget_get_window (toplevel)));
 #endif
 
       /* determine the DISPLAY value for the command */
@@ -1656,6 +1656,20 @@ terminal_screen_set_custom_command (TerminalScreen *screen,
 
 
 /**
+ * terminal_screen_get_custom_title:
+ * @screen  : A #TerminalScreen.
+ **/
+const gchar *
+terminal_screen_get_custom_title (TerminalScreen *screen)
+{
+  terminal_return_val_if_fail (TERMINAL_IS_SCREEN (screen), NULL);
+
+  return screen->custom_title;
+}
+
+
+
+/**
  * terminal_screen_set_custom_title:
  * @screen  : A #TerminalScreen.
  * @title   : Title string.
@@ -2302,4 +2316,16 @@ terminal_screen_set_input_enabled (TerminalScreen *screen,
 {
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   vte_terminal_set_input_enabled (VTE_TERMINAL (screen->terminal), enabled);
+}
+
+
+
+void
+terminal_screen_save_contents (TerminalScreen *screen,
+                               GOutputStream  *stream,
+                               GError         *error)
+{
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  vte_terminal_write_contents_sync (VTE_TERMINAL (screen->terminal),
+                                    stream, VTE_WRITE_DEFAULT, NULL, &error);
 }

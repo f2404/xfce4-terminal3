@@ -56,6 +56,7 @@
 /* Closed tabs stored info */
 typedef struct
 {
+  gchar *custom_title;
   gchar *working_directory;
   gint   position;
 } TerminalWindowTabInfo;
@@ -198,6 +199,8 @@ static void         terminal_window_action_search_next            (GtkAction    
                                                                    TerminalWindow         *window);
 static void         terminal_window_action_search_prev            (GtkAction              *action,
                                                                    TerminalWindow         *window);
+static void         terminal_window_action_save_contents          (GtkAction              *action,
+                                                                   TerminalWindow         *window);
 static void         terminal_window_action_reset                  (GtkAction              *action,
                                                                    TerminalWindow         *window);
 static void         terminal_window_action_reset_and_clear        (GtkAction              *action,
@@ -246,6 +249,7 @@ static const GtkActionEntry action_entries[] =
     { "search", "edit-find", N_ ("_Find..."), "<control><shift>f", N_ ("Search terminal contents"), G_CALLBACK (terminal_window_action_search), },
     { "search-next", NULL, N_ ("Find Ne_xt"), NULL, NULL, G_CALLBACK (terminal_window_action_search_next), },
     { "search-prev", NULL, N_ ("Find Pre_vious"), NULL, NULL, G_CALLBACK (terminal_window_action_search_prev), },
+    { "save-contents", "document-save-as", N_ ("Sa_ve Contents..."), NULL, NULL, G_CALLBACK (terminal_window_action_save_contents), },
     { "reset", NULL, N_ ("_Reset"), NULL, NULL, G_CALLBACK (terminal_window_action_reset), },
     { "reset-and-clear", NULL, N_ ("_Clear Scrollback and Reset"), NULL, NULL, G_CALLBACK (terminal_window_action_reset_and_clear), },
   { "tabs-menu", NULL, N_ ("T_abs"), NULL, NULL, NULL, },
@@ -415,9 +419,12 @@ terminal_window_init (TerminalWindow *window)
   window->action_fullscreen = gtk_action_group_get_action (window->action_group, "fullscreen");
 
 #if defined(GDK_WINDOWING_X11)
-  /* setup fullscreen mode */
-  if (!gdk_x11_screen_supports_net_wm_hint (screen, gdk_atom_intern ("_NET_WM_STATE_FULLSCREEN", FALSE)))
-    gtk_action_set_sensitive (window->action_fullscreen, FALSE);
+  if (GDK_IS_X11_SCREEN (screen))
+    {
+      /* setup fullscreen mode */
+      if (!gdk_x11_screen_supports_net_wm_hint (screen, gdk_atom_intern ("_NET_WM_STATE_FULLSCREEN", FALSE)))
+        gtk_action_set_sensitive (window->action_fullscreen, FALSE);
+    }
 #endif
 }
 
@@ -969,6 +976,8 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
   tab_info = g_new (TerminalWindowTabInfo, 1);
   tab_info->position = page_num;
   tab_info->working_directory = g_strdup (terminal_screen_get_working_directory (TERMINAL_SCREEN (child)));
+  tab_info->custom_title = IS_STRING (terminal_screen_get_custom_title (TERMINAL_SCREEN (child))) ?
+                           g_strdup (terminal_screen_get_custom_title (TERMINAL_SCREEN (child))) : NULL;
   g_queue_push_tail (window->closed_tabs_list, tab_info);
 
   /* show the tabs when needed */
@@ -1409,6 +1418,8 @@ terminal_window_action_undo_close_tab (GtkAction      *action,
       terminal_window_add (window, TERMINAL_SCREEN (terminal));
       terminal_screen_set_working_directory (TERMINAL_SCREEN (terminal),
                                              tab_info->working_directory);
+      if (tab_info->custom_title != NULL)
+        terminal_screen_set_custom_title (TERMINAL_SCREEN (terminal), tab_info->custom_title);
       gtk_notebook_reorder_child (GTK_NOTEBOOK (window->notebook), terminal, tab_info->position);
 
       /* free info */
@@ -1953,6 +1964,70 @@ terminal_window_action_search_prev (GtkAction      *action,
 
 
 static void
+terminal_window_action_save_contents (GtkAction      *action,
+                                      TerminalWindow *window)
+{
+  GtkWidget     *dialog;
+  GFile         *file;
+  GOutputStream *stream;
+  GError        *error = NULL;
+  gchar         *filename_uri;
+  gint           response;
+
+  terminal_return_if_fail (window->active != NULL);
+
+  dialog = gtk_file_chooser_dialog_new (_("Save contents..."),
+                                        GTK_WINDOW (window),
+                                        GTK_FILE_CHOOSER_ACTION_SAVE,
+                                        _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                        _("_Save"), GTK_RESPONSE_ACCEPT,
+                                        NULL);
+  gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+
+  /* save to current working directory */
+  gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog),
+                                       terminal_screen_get_working_directory (TERMINAL_SCREEN (window->active)));
+
+  gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (window));
+  gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
+  gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), TRUE);
+
+  gtk_widget_show_all (dialog);
+
+  response = gtk_dialog_run (GTK_DIALOG (dialog));
+  if (response != GTK_RESPONSE_ACCEPT)
+    {
+      gtk_widget_destroy (dialog);
+      return;
+    }
+
+  filename_uri = gtk_file_chooser_get_uri (GTK_FILE_CHOOSER (dialog));
+  gtk_widget_destroy (dialog);
+
+  if (filename_uri == NULL)
+    return;
+
+  file = g_file_new_for_uri (filename_uri);
+  stream = G_OUTPUT_STREAM (g_file_replace (file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error));
+  if (stream)
+    {
+      terminal_screen_save_contents (TERMINAL_SCREEN (window->active), stream, error);
+      g_object_unref (stream);
+    }
+
+  if (error)
+    {
+      xfce_dialog_show_error (GTK_WINDOW (window), error, _("Failed to save terminal contents"));
+      g_error_free (error);
+    }
+
+  g_object_unref (file);
+  g_free (filename_uri);
+}
+
+
+
+static void
 terminal_window_action_reset (GtkAction      *action,
                               TerminalWindow *window)
 {
@@ -2054,6 +2129,7 @@ terminal_window_move_tab (GtkNotebook *notebook,
 static void
 terminal_window_tab_info_free (TerminalWindowTabInfo *tab_info)
 {
+  g_free (tab_info->custom_title);
   g_free (tab_info->working_directory);
   g_free (tab_info);
 }
