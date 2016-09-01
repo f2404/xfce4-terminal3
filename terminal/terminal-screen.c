@@ -1812,18 +1812,47 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
                                      glong           columns,
                                      glong           rows)
 {
+  GtkRequisition terminal_requisition;
+  GtkRequisition window_requisition;
+  gint           width;
+  gint           height;
+  gint           xpad, ypad;
+  glong          char_width;
+  glong          char_height;
+
+
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
   terminal_return_if_fail (GTK_IS_WINDOW (window));
 
   terminal_screen_set_window_geometry_hints (screen, window);
 
+  gtk_widget_get_preferred_size (GTK_WIDGET (window), NULL, &window_requisition);
+  gtk_widget_get_preferred_size (screen->terminal, NULL, &terminal_requisition);
+
   if (columns < 1)
     columns = vte_terminal_get_column_count (VTE_TERMINAL (screen->terminal));
   if (rows < 1)
     rows = vte_terminal_get_row_count (VTE_TERMINAL (screen->terminal));
 
-  vte_terminal_set_size (VTE_TERMINAL (screen->terminal), columns, rows);
+  terminal_screen_get_geometry (screen,
+                                &char_width, &char_height,
+                                &xpad, &ypad);
+
+  width = window_requisition.width - terminal_requisition.width;
+  if (width < 0)
+    width = 0;
+  width += xpad + char_width * columns;
+
+  height = window_requisition.height - terminal_requisition.height;
+  if (height < 0)
+    height = 0;
+  height += ypad + char_height * rows;
+
+  if (gtk_widget_get_mapped (GTK_WIDGET (window)))
+    gtk_window_resize (window, width, height);
+  else
+    gtk_window_set_default_size (window, width, height);
 }
 
 
