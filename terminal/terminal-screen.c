@@ -1832,9 +1832,6 @@ terminal_screen_force_resize_window (TerminalScreen *screen,
   if (rows < 1)
     rows = vte_terminal_get_row_count (VTE_TERMINAL (screen->terminal));
 
-  TERMINAL_WINDOW (window)->grid_height = rows;
-  TERMINAL_WINDOW (window)->grid_width = columns;
-
   terminal_screen_get_geometry (screen,
                                 &char_width, &char_height,
                                 &xpad, &ypad);
