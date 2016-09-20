@@ -155,6 +155,7 @@ struct _TerminalScreen
 {
   GtkHBox              parent_instance;
   TerminalPreferences *preferences;
+  TerminalImageLoader *loader;
   GtkWidget           *terminal;
   GtkWidget           *scrollbar;
   GtkWidget           *tab_label;
@@ -251,6 +252,7 @@ terminal_screen_class_init (TerminalScreenClass *klass)
 static void
 terminal_screen_init (TerminalScreen *screen)
 {
+  screen->loader = NULL;
   screen->working_directory = g_get_current_dir ();
   screen->session_id = ++screen_last_session_id;
 
@@ -322,6 +324,9 @@ terminal_screen_finalize (GObject *object)
   g_signal_handlers_disconnect_by_func (screen->preferences,
       G_CALLBACK (terminal_screen_preferences_changed), screen);
   g_object_unref (G_OBJECT (screen->preferences));
+
+  if (screen->loader != NULL)
+    g_object_unref (G_OBJECT (screen->loader));
 
   g_strfreev (screen->custom_command);
   g_free (screen->working_directory);
@@ -456,7 +461,6 @@ terminal_screen_draw (GtkWidget *widget,
 {
   TerminalScreen      *screen = TERMINAL_SCREEN (user_data);
   TerminalBackground   background_mode;
-  TerminalImageLoader *loader;
   GdkPixbuf           *image;
   gint                 width, height;
   cairo_surface_t     *surface;
@@ -473,9 +477,9 @@ terminal_screen_draw (GtkWidget *widget,
   width = gtk_widget_get_allocated_width (screen->terminal);
   height = gtk_widget_get_allocated_height (screen->terminal);
 
-  loader = terminal_image_loader_get ();
-  image = terminal_image_loader_load (loader, width, height);
-  g_object_unref (G_OBJECT (loader));
+  if (screen->loader == NULL)
+    screen->loader = terminal_image_loader_get ();
+  image = terminal_image_loader_load (screen->loader, width, height);
 
   if (G_UNLIKELY (image == NULL))
     return FALSE;
