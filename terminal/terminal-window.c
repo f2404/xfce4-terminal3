@@ -78,6 +78,8 @@ static gboolean     terminal_window_state_event                   (GtkWidget    
                                                                    GdkEventWindowState    *event);
 static void         terminal_window_style_set                     (GtkWidget              *widget,
                                                                    GtkStyle               *previous_style);
+static gboolean     terminal_window_scroll_event                  (GtkWidget              *widget,
+                                                                   GdkEventScroll         *event);
 static gboolean     terminal_window_confirm_close                 (TerminalWindow         *window);
 static void         terminal_window_size_push                     (TerminalWindow         *window);
 static gboolean     terminal_window_size_pop                      (gpointer                data);
@@ -215,8 +217,6 @@ static void         terminal_window_switch_tab                    (GtkNotebook  
 static void         terminal_window_move_tab                      (GtkNotebook            *notebook,
                                                                    gboolean                move_left);
 static void         terminal_window_tab_info_free                 (TerminalWindowTabInfo  *tab_info);
-static void         terminal_window_make_child_opaque             (GtkWidget              *child,
-                                                                   GtkWidget              *window);
 
 
 
@@ -292,6 +292,7 @@ terminal_window_class_init (TerminalWindowClass *klass)
   gtkwidget_class->window_state_event = terminal_window_state_event;
   gtkwidget_class->delete_event = terminal_window_delete_event;
   gtkwidget_class->style_set = terminal_window_style_set;
+  gtkwidget_class->scroll_event = terminal_window_scroll_event;
 
   /**
    * TerminalWindow::new-window
@@ -327,10 +328,13 @@ terminal_window_class_init (TerminalWindowClass *klass)
 static void
 terminal_window_init (TerminalWindow *window)
 {
-  GtkAccelGroup  *accel_group;
-  gboolean        always_show_tabs;
-  GdkScreen      *screen;
-  GdkVisual      *visual;
+  GtkAccelGroup   *accel_group;
+  gboolean         always_show_tabs;
+  GdkScreen       *screen;
+  GdkVisual       *visual;
+  GtkStyleContext *context;
+  GtkStateFlags    state;
+  GdkRGBA          bg;
 
   window->preferences = terminal_preferences_get ();
 
@@ -371,6 +375,12 @@ terminal_window_init (TerminalWindow *window)
   window->vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
   gtk_container_add (GTK_CONTAINER (window), window->vbox);
 
+  /* avoid transparent widgets, such as menubar or tabbar */
+  context = gtk_widget_get_style_context (GTK_WIDGET (window));
+  state = gtk_widget_get_state_flags (GTK_WIDGET (window));
+  gtk_style_context_get_background_color (context, state, &bg);
+  gtk_widget_override_background_color (window->vbox, state, &bg);
+
   /* allocate the notebook for the terminal screens */
   g_object_get (G_OBJECT (window->preferences), "misc-always-show-tabs", &always_show_tabs, NULL);
   window->notebook = g_object_new (GTK_TYPE_NOTEBOOK,
@@ -379,7 +389,6 @@ terminal_window_init (TerminalWindow *window)
                                    "show-tabs", always_show_tabs,
                                    NULL);
   gtk_widget_add_events (window->notebook, GDK_SCROLL_MASK);
-  terminal_window_make_child_opaque (window->notebook, GTK_WIDGET (window));
 
   /* set the notebook group id */
   gtk_notebook_set_group_name (GTK_NOTEBOOK (window->notebook), window_notebook_group);
@@ -521,6 +530,35 @@ terminal_window_style_set (GtkWidget *widget,
   /* delay the pop until after size allocate */
   if (previous_style != NULL)
     g_idle_add (terminal_window_size_pop, window);
+}
+
+
+
+static gboolean
+terminal_window_scroll_event (GtkWidget      *widget,
+                              GdkEventScroll *event)
+{
+  gboolean mouse_wheel_zoom;
+  TerminalWindow *window = TERMINAL_WINDOW (widget);
+
+  g_object_get (G_OBJECT (window->preferences),
+                "misc-mouse-wheel-zoom", &mouse_wheel_zoom, NULL);
+
+  if (mouse_wheel_zoom && event->state == (GDK_SHIFT_MASK | GDK_CONTROL_MASK)
+      && event->direction == GDK_SCROLL_UP)
+    {
+      terminal_window_action_zoom_in (NULL, window);
+      return TRUE;
+    }
+
+  if (mouse_wheel_zoom && event->state == (GDK_SHIFT_MASK | GDK_CONTROL_MASK)
+      && event->direction == GDK_SCROLL_DOWN)
+    {
+      terminal_window_action_zoom_out (NULL, window);
+      return TRUE;
+    }
+
+  return FALSE;
 }
 
 
@@ -1592,7 +1630,6 @@ terminal_window_action_show_menubar (GtkToggleAction *action,
           window->menubar = gtk_ui_manager_get_widget (window->ui_manager, "/main-menu");
           gtk_box_pack_start (GTK_BOX (window->vbox), window->menubar, FALSE, FALSE, 0);
           gtk_box_reorder_child (GTK_BOX (window->vbox), window->menubar, 0);
-          terminal_window_make_child_opaque (window->menubar, GTK_WIDGET (window));
         }
 
       gtk_widget_show (window->menubar);
@@ -2162,22 +2199,6 @@ terminal_window_tab_info_free (TerminalWindowTabInfo *tab_info)
   g_free (tab_info->custom_title);
   g_free (tab_info->working_directory);
   g_free (tab_info);
-}
-
-
-
-static void
-terminal_window_make_child_opaque (GtkWidget *child,
-                                   GtkWidget *window)
-{
-  GtkStyleContext *context;
-  GtkStateFlags    state;
-  GdkRGBA          bg;
-
-  context = gtk_widget_get_style_context (window);
-  state = gtk_widget_get_state_flags (window);
-  gtk_style_context_get_background_color (context, state, &bg);
-  gtk_widget_override_background_color (child, state, &bg);
 }
 
 

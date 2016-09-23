@@ -132,12 +132,12 @@ terminal_preferences_dialog_init (TerminalPreferencesDialog *dialog)
   gchar             palette_name[16];
   GtkFileFilter    *filter;
   gchar            *file;
+  guint             res;
   GBinding         *binding;
   GtkTreeModel     *model;
   gchar            *current;
   GtkTreeIter       current_iter;
   const gchar      *props_active[] = { "title-mode", "command-login-shell",
-                                       "scrolling-single-line",
                                        "scrolling-on-output", "scrolling-on-keystroke",
                                        "scrolling-bar", "scrolling-unlimited",
                                        "misc-cursor-shape", "misc-cursor-blinks",
@@ -180,7 +180,10 @@ terminal_preferences_dialog_init (TerminalPreferencesDialog *dialog)
     }
 
   /* load the builder data into the object */
-  if (gtk_builder_add_from_file (GTK_BUILDER (dialog), file, &error) == 0)
+  res = gtk_builder_add_from_file (GTK_BUILDER (dialog), file, &error);
+  g_free (file);
+
+  if (res == 0)
     {
 error:
       g_critical ("Failed to load ui file: %s.", error->message);
@@ -842,6 +845,10 @@ terminal_preferences_dialog_background_mode (GtkWidget                 *combobox
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "label-opacity-not-available");
   terminal_return_if_fail (G_IS_OBJECT (object));
   g_object_set (G_OBJECT (object), "visible", active > 0 && !composited, NULL);
+
+  object = gtk_builder_get_object (GTK_BUILDER (dialog), "opacity-label");
+  terminal_return_if_fail (G_IS_OBJECT (object));
+  g_object_set (G_OBJECT (object), "label", active == 1 ? "_Image\ndarkening:" : "_Opacity:", NULL);
 }
 
 
