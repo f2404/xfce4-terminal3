@@ -114,7 +114,7 @@ static void       terminal_screen_update_misc_bell              (TerminalScreen 
 static void       terminal_screen_update_misc_cursor_blinks     (TerminalScreen        *screen);
 static void       terminal_screen_update_misc_cursor_shape      (TerminalScreen        *screen);
 static void       terminal_screen_update_misc_mouse_autohide    (TerminalScreen        *screen);
-static void       terminal_screen_update_scrolling_bar          (TerminalScreen        *screen);
+static void       terminal_screen_update_misc_rewrap_on_resize  (TerminalScreen        *screen);
 static void       terminal_screen_update_scrolling_lines        (TerminalScreen        *screen);
 static void       terminal_screen_update_scrolling_on_output    (TerminalScreen        *screen);
 static void       terminal_screen_update_scrolling_on_keystroke (TerminalScreen        *screen);
@@ -292,6 +292,7 @@ terminal_screen_init (TerminalScreen *screen)
   terminal_screen_update_misc_cursor_blinks (screen);
   terminal_screen_update_misc_cursor_shape (screen);
   terminal_screen_update_misc_mouse_autohide (screen);
+  terminal_screen_update_misc_rewrap_on_resize (screen);
   terminal_screen_update_scrolling_bar (screen);
   terminal_screen_update_scrolling_lines (screen);
   terminal_screen_update_scrolling_on_output (screen);
@@ -544,6 +545,8 @@ terminal_screen_preferences_changed (TerminalPreferences *preferences,
     terminal_screen_update_misc_cursor_shape (screen);
   else if (strcmp ("misc-mouse-autohide", name) == 0)
     terminal_screen_update_misc_mouse_autohide (screen);
+  else if (strcmp ("misc-rewrap-on-resize", name) == 0)
+    terminal_screen_update_misc_rewrap_on_resize (screen);
   else if (strcmp ("scrolling-bar", name) == 0)
     terminal_screen_update_scrolling_bar (screen);
   else if (strcmp ("scrolling-lines", name) == 0 || strcmp ("scrolling-unlimited", name) == 0)
@@ -1017,55 +1020,6 @@ terminal_screen_update_colors (TerminalScreen *screen)
 
 
 
-void
-terminal_screen_update_font (TerminalScreen *screen)
-{
-  gboolean               font_allow_bold;
-  gchar                 *font_name;
-  PangoFontDescription  *font_desc;
-  glong                  grid_w = 0, grid_h = 0;
-  GtkWidget             *toplevel;
-
-  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
-  terminal_return_if_fail (TERMINAL_IS_PREFERENCES (screen->preferences));
-  terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
-
-  g_object_get (G_OBJECT (screen->preferences),
-                "font-allow-bold", &font_allow_bold,
-                "font-name", &font_name,
-                NULL);
-
-  toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
-  if (TERMINAL_IS_WINDOW (toplevel))
-    {
-      if (TERMINAL_WINDOW (toplevel)->font)
-        {
-          g_free (font_name);
-          font_name = g_strdup (TERMINAL_WINDOW (toplevel)->font);
-        }
-      if (TERMINAL_WINDOW (toplevel)->zoom != TERMINAL_ZOOM_LEVEL_DEFAULT)
-        font_name = terminal_screen_zoom_font (screen, font_name, TERMINAL_WINDOW (toplevel)->zoom);
-    }
-
-  if (gtk_widget_get_realized (GTK_WIDGET (screen)))
-    terminal_screen_get_size (screen, &grid_w, &grid_h);
-
-  if (G_LIKELY (font_name != NULL))
-    {
-      font_desc = pango_font_description_from_string (font_name);
-      vte_terminal_set_allow_bold (VTE_TERMINAL (screen->terminal), font_allow_bold);
-      vte_terminal_set_font (VTE_TERMINAL (screen->terminal), font_desc);
-      pango_font_description_free (font_desc);
-      g_free (font_name);
-    }
-
-  /* update window geometry it required */
-  if (grid_w > 0 && grid_h > 0)
-    terminal_screen_force_resize_window (screen, GTK_WINDOW (toplevel), grid_w, grid_h);
-}
-
-
-
 static void
 terminal_screen_update_misc_bell (TerminalScreen *screen)
 {
@@ -1128,40 +1082,11 @@ terminal_screen_update_misc_mouse_autohide (TerminalScreen *screen)
 
 
 static void
-terminal_screen_update_scrolling_bar (TerminalScreen *screen)
+terminal_screen_update_misc_rewrap_on_resize (TerminalScreen *screen)
 {
-  TerminalScrollbar  scrollbar;
-  glong              grid_w = 0, grid_h = 0;
-  GtkWidget         *toplevel;
-
-  g_object_get (G_OBJECT (screen->preferences), "scrolling-bar", &scrollbar, NULL);
-
-  if (gtk_widget_get_realized (GTK_WIDGET (screen)))
-    terminal_screen_get_size (screen, &grid_w, &grid_h);
-
-  switch (scrollbar)
-    {
-    case TERMINAL_SCROLLBAR_NONE:
-      gtk_widget_hide (screen->scrollbar);
-      break;
-
-    case TERMINAL_SCROLLBAR_LEFT:
-      gtk_box_reorder_child (GTK_BOX (screen), screen->scrollbar, 0);
-      gtk_widget_show (screen->scrollbar);
-      break;
-
-    case TERMINAL_SCROLLBAR_RIGHT:
-      gtk_box_reorder_child (GTK_BOX (screen), screen->scrollbar, 1);
-      gtk_widget_show (screen->scrollbar);
-      break;
-    }
-
-  /* update window geometry it required */
-  if (grid_w > 0 && grid_h > 0)
-    {
-      toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
-      terminal_screen_force_resize_window (screen, GTK_WINDOW (toplevel), grid_w, grid_h);
-    }
+  gboolean bval;
+  g_object_get (G_OBJECT (screen->preferences), "misc-rewrap-on-resize", &bval, NULL);
+  vte_terminal_set_rewrap_on_resize (VTE_TERMINAL (screen->terminal), bval);
 }
 
 
@@ -2272,6 +2197,109 @@ terminal_screen_search_find_previous (TerminalScreen *screen)
 {
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   vte_terminal_search_find_previous (VTE_TERMINAL (screen->terminal));
+}
+
+
+
+void
+terminal_screen_update_scrolling_bar (TerminalScreen *screen)
+{
+  TerminalScrollbar  scrollbar;
+  TerminalVisibility visibility = TERMINAL_VISIBILITY_DEFAULT;
+  glong              grid_w = 0, grid_h = 0;
+  GtkWidget         *toplevel;
+
+  g_object_get (G_OBJECT (screen->preferences), "scrolling-bar", &scrollbar, NULL);
+
+  if (gtk_widget_get_realized (GTK_WIDGET (screen)))
+    terminal_screen_get_size (screen, &grid_w, &grid_h);
+
+  toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
+  if (TERMINAL_IS_WINDOW (toplevel))
+    visibility = TERMINAL_WINDOW (toplevel)->scrollbar_visibility;
+
+  if (G_LIKELY (visibility == TERMINAL_VISIBILITY_DEFAULT))
+    {
+      switch (scrollbar)
+        {
+        case TERMINAL_SCROLLBAR_NONE:
+          gtk_widget_hide (screen->scrollbar);
+          break;
+
+        case TERMINAL_SCROLLBAR_LEFT:
+          gtk_box_reorder_child (GTK_BOX (screen), screen->scrollbar, 0);
+          gtk_widget_show (screen->scrollbar);
+          break;
+
+        case TERMINAL_SCROLLBAR_RIGHT:
+          gtk_box_reorder_child (GTK_BOX (screen), screen->scrollbar, 1);
+          gtk_widget_show (screen->scrollbar);
+          break;
+        }
+    }
+  else if (visibility == TERMINAL_VISIBILITY_HIDE)
+    {
+      gtk_widget_hide (screen->scrollbar);
+    }
+  else /* show */
+    {
+      gtk_box_reorder_child (GTK_BOX (screen), screen->scrollbar,
+                             scrollbar == TERMINAL_SCROLLBAR_LEFT ? 0 : 1);
+      gtk_widget_show (screen->scrollbar);
+    }
+
+  /* update window geometry it required */
+  if (grid_w > 0 && grid_h > 0)
+    terminal_screen_force_resize_window (screen, GTK_WINDOW (toplevel), grid_w, grid_h);
+}
+
+
+
+void
+terminal_screen_update_font (TerminalScreen *screen)
+{
+  gboolean               font_allow_bold;
+  gchar                 *font_name;
+  PangoFontDescription  *font_desc;
+  glong                  grid_w = 0, grid_h = 0;
+  GtkWidget             *toplevel;
+
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  terminal_return_if_fail (TERMINAL_IS_PREFERENCES (screen->preferences));
+  terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
+
+  g_object_get (G_OBJECT (screen->preferences),
+                "font-allow-bold", &font_allow_bold,
+                "font-name", &font_name,
+                NULL);
+
+  toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
+  if (TERMINAL_IS_WINDOW (toplevel))
+    {
+      if (TERMINAL_WINDOW (toplevel)->font)
+        {
+          g_free (font_name);
+          font_name = g_strdup (TERMINAL_WINDOW (toplevel)->font);
+        }
+      if (TERMINAL_WINDOW (toplevel)->zoom != TERMINAL_ZOOM_LEVEL_DEFAULT)
+        font_name = terminal_screen_zoom_font (screen, font_name, TERMINAL_WINDOW (toplevel)->zoom);
+    }
+
+  if (gtk_widget_get_realized (GTK_WIDGET (screen)))
+    terminal_screen_get_size (screen, &grid_w, &grid_h);
+
+  if (G_LIKELY (font_name != NULL))
+    {
+      font_desc = pango_font_description_from_string (font_name);
+      vte_terminal_set_allow_bold (VTE_TERMINAL (screen->terminal), font_allow_bold);
+      vte_terminal_set_font (VTE_TERMINAL (screen->terminal), font_desc);
+      pango_font_description_free (font_desc);
+      g_free (font_name);
+    }
+
+  /* update window geometry it required */
+  if (grid_w > 0 && grid_h > 0)
+    terminal_screen_force_resize_window (screen, GTK_WINDOW (toplevel), grid_w, grid_h);
 }
 
 
