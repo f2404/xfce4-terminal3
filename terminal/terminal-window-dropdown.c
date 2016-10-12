@@ -293,6 +293,8 @@ terminal_window_dropdown_init (TerminalWindowDropdown *dropdown)
                               G_OBJECT (dropdown), name,
                               G_BINDING_SYNC_CREATE);
     }
+
+  gtk_widget_show_all (hbox);
 }
 
 
@@ -690,6 +692,7 @@ terminal_window_dropdown_show (TerminalWindowDropdown *dropdown,
   gint               x_dest, y_dest;
   GtkRequisition     req1;
   gboolean           move_to_active;
+  gboolean           keep_above;
   gboolean           visible;
   gint               vbox_h;
   TerminalDirection  old_animation_dir = ANIMATION_DIR_NONE;
@@ -783,6 +786,11 @@ terminal_window_dropdown_show (TerminalWindowDropdown *dropdown,
     }
   else
     {
+      g_object_get (G_OBJECT (window->preferences),
+                    "dropdown-keep-above", &keep_above,
+                    NULL);
+      gtk_window_set_keep_above (GTK_WINDOW (dropdown), keep_above);
+
       /* make sure all the content fits */
       gtk_window_resize (GTK_WINDOW (dropdown), w, h);
     }
@@ -807,6 +815,7 @@ terminal_window_dropdown_toggle_real (TerminalWindowDropdown *dropdown,
       /* if the focus was lost for 0.1 second and toggle-focus is used, we had
        * focus until the shortcut was pressed, and then we hide the window */
       if (!toggle_focus
+          || dropdown->focus_out_time == 0
           || (g_get_real_time () - dropdown->focus_out_time) < G_USEC_PER_SEC / 10)
         {
           /* hide */
