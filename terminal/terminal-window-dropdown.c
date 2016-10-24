@@ -798,7 +798,6 @@ terminal_window_dropdown_show (TerminalWindowDropdown *dropdown,
     }
 
   /* resize */
-  printf("set size: %d %d\n", w, vbox_h);
   gtk_widget_set_size_request (window->vbox, w, vbox_h);
 
   /* calc position */
