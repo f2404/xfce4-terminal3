@@ -33,6 +33,8 @@ G_BEGIN_DECLS
 #define TERMINAL_IS_WINDOW_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST ((klass), TERMINAL_TYPE_WINDOW))
 #define TERMINAL_WINDOW_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TERMINAL_TYPE_WINDOW, TerminalWindowClass))
 
+typedef struct _TerminalWindowPrivate TerminalWindowPrivate;
+
 typedef struct
 {
   GtkWindowClass parent_class;
@@ -40,76 +42,54 @@ typedef struct
 
 typedef struct
 {
-  GtkWindow            parent_instance;
+  GtkWindow              parent_instance;
+
+  TerminalWindowPrivate *priv;
 
   /* if this is a TerminalWindowDropdown */
-  guint                drop_down : 1;
+  guint                  drop_down : 1;
 
-  /* for the drop-down to keep open with dialogs */
-  guint                n_child_windows;
+  GtkActionGroup        *action_group;
 
-  TerminalPreferences *preferences;
-  GtkWidget           *preferences_dialog;
+  GtkWidget             *vbox;
+  GtkWidget             *menubar;
+  GtkWidget             *toolbar;
+  GtkWidget             *notebook;
 
-  GtkActionGroup      *action_group;
-  GtkUIManager        *ui_manager;
+  gchar                 *font;
+  TerminalZoomLevel      zoom;
 
-  guint                tabs_menu_merge_id;
-  GSList              *tabs_menu_actions;
+  GtkAction             *action_fullscreen;
 
-  GtkWidget           *vbox;
-  GtkWidget           *menubar;
-  GtkWidget           *toolbar;
-  GtkWidget           *notebook;
-
-  GtkWidget           *search_dialog;
-  GtkWidget           *title_dialog;
-
-  /* pushed size of screen */
-  glong                grid_width;
-  glong                grid_height;
-
-  gchar               *font;
-  TerminalZoomLevel    zoom;
-
-  GtkAction           *encoding_action;
-
-  TerminalScreen      *active;
-
-  /* cached actions to avoid lookups */
-  GtkAction           *action_undo_close_tab;
-  GtkAction           *action_detach_tab;
-  GtkAction           *action_close_other_tabs;
-  GtkAction           *action_prev_tab;
-  GtkAction           *action_next_tab;
-  GtkAction           *action_move_tab_left;
-  GtkAction           *action_move_tab_right;
-  GtkAction           *action_copy;
-  GtkAction           *action_search_next;
-  GtkAction           *action_search_prev;
-  GtkAction           *action_fullscreen;
-
-  GQueue              *closed_tabs_list;
-
-  TerminalVisibility   scrollbar_visibility;
+  TerminalVisibility     scrollbar_visibility;
 } TerminalWindow;
 
-GType           terminal_window_get_type            (void) G_GNUC_CONST;
+GType           terminal_window_get_type               (void) G_GNUC_CONST;
 
-GtkWidget      *terminal_window_new                 (const gchar        *role,
-                                                     gboolean            fullscreen,
-                                                     TerminalVisibility  menubar,
-                                                     TerminalVisibility  borders,
-                                                     TerminalVisibility  toolbar);
+GtkWidget      *terminal_window_new                    (const gchar        *role,
+                                                        gboolean            fullscreen,
+                                                        TerminalVisibility  menubar,
+                                                        TerminalVisibility  borders,
+                                                        TerminalVisibility  toolbar);
 
-void            terminal_window_add                 (TerminalWindow     *window,
-                                                     TerminalScreen     *screen);
+void            terminal_window_add                    (TerminalWindow     *window,
+                                                        TerminalScreen     *screen);
 
-TerminalScreen *terminal_window_get_active          (TerminalWindow     *window);
+TerminalScreen *terminal_window_get_active             (TerminalWindow     *window);
 
-void            terminal_window_notebook_show_tabs  (TerminalWindow     *window);
+void            terminal_window_notebook_show_tabs     (TerminalWindow     *window);
 
-GSList         *terminal_window_get_restart_command (TerminalWindow     *window);
+GSList         *terminal_window_get_restart_command    (TerminalWindow     *window);
+
+void            terminal_window_set_grid_size          (TerminalWindow     *window,
+                                                        glong               width,
+                                                        glong               height);
+
+gboolean        terminal_window_has_children           (TerminalWindow     *window);
+
+GObject        *terminal_window_get_preferences        (TerminalWindow     *window);
+
+GtkWidget      *terminal_window_get_preferences_dialog (TerminalWindow     *window);
 
 G_END_DECLS
 
