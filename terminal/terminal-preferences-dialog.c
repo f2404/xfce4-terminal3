@@ -144,14 +144,14 @@ terminal_preferences_dialog_init (TerminalPreferencesDialog *dialog)
                                        "font-allow-bold", "misc-menubar-default",
                                        "misc-toolbar-default", "misc-borders-default",
                                        "misc-tab-close-middle-click", "misc-mouse-autohide",
-                                       "misc-rewrap-on-resize", "shortcuts-no-helpkey",
-                                       "shortcuts-no-mnemonics", "shortcuts-no-menukey",
-                                       "binding-backspace", "binding-delete",
-                                       "background-mode", "background-image-style",
-                                       "color-background-vary", "dropdown-keep-open-default",
-                                       "dropdown-keep-above", "dropdown-toggle-focus",
-                                       "dropdown-status-icon", "dropdown-move-to-active",
-                                       "dropdown-always-show-tabs"
+                                       "misc-rewrap-on-resize", "misc-copy-on-select",
+                                       "shortcuts-no-helpkey", "shortcuts-no-mnemonics",
+                                       "shortcuts-no-menukey", "binding-backspace",
+                                       "binding-delete", "background-mode",
+                                       "background-image-style", "color-background-vary",
+                                       "dropdown-keep-open-default", "dropdown-keep-above",
+                                       "dropdown-toggle-focus", "dropdown-status-icon",
+                                       "dropdown-move-to-active", "dropdown-always-show-tabs"
                                      };
   const gchar      *props_color[] =  { "color-foreground", "color-cursor",
                                        "color-background", "tab-activity-color",
@@ -844,7 +844,7 @@ terminal_preferences_dialog_background_mode (GtkWidget                 *combobox
   terminal_return_if_fail (GTK_IS_COMBO_BOX (combobox));
 
   active = gtk_combo_box_get_active (GTK_COMBO_BOX (combobox));
-  composited = gtk_widget_is_composited (combobox);
+  composited = gdk_screen_is_composited (gtk_widget_get_screen (combobox));
 
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "box-file");
   terminal_return_if_fail (G_IS_OBJECT (object));
@@ -967,7 +967,6 @@ terminal_preferences_dialog_new (gboolean show_drop_down)
   GObject    *dialog;
   GObject    *object;
   GObject    *notebook;
-  gboolean    composited;
 
   builder = g_object_new (TERMINAL_TYPE_PREFERENCES_DIALOG, NULL);
 
@@ -984,8 +983,7 @@ terminal_preferences_dialog_new (gboolean show_drop_down)
           gtk_notebook_page_num (GTK_NOTEBOOK (notebook), GTK_WIDGET (object)));
 
       /* show warning and disable control if WM does not support compositing */
-      composited = gtk_widget_is_composited (GTK_WIDGET (object));
-      if (!composited)
+      if (!gdk_screen_is_composited (gtk_widget_get_screen (GTK_WIDGET (object))))
         {
           object = gtk_builder_get_object (builder, "dropdown-opacity-not-available");
           terminal_return_if_fail (G_IS_OBJECT (object));

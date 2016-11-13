@@ -490,14 +490,18 @@ terminal_screen_draw (GtkWidget *widget,
 
   cairo_save (cr);
 
+  /* draw background image; cairo_set_operator() allows PNG transparency */
   gdk_cairo_set_source_pixbuf (cr, image, 0, 0);
+  cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
   cairo_paint (cr);
   g_object_unref (G_OBJECT (image));
 
+  /* draw vte terminal */
   surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
   ctx = cairo_create (surface);
   gtk_widget_draw (screen->terminal, ctx);
   cairo_set_source_surface (cr, surface, 0, 0);
+  cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
   cairo_paint (cr);
   cairo_destroy (ctx);
   cairo_surface_destroy (surface);
@@ -1195,8 +1199,16 @@ static void
 terminal_screen_vte_selection_changed (VteTerminal    *terminal,
                                        TerminalScreen *screen)
 {
+  gboolean copy_on_select;
+
   terminal_return_if_fail (VTE_IS_TERMINAL (terminal));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+
+  /* copy vte selection to GDK_SELECTION_CLIPBOARD if option is set */
+  g_object_get (G_OBJECT (screen->preferences),
+                "misc-copy-on-select", &copy_on_select, NULL);
+  if (copy_on_select)
+    vte_terminal_copy_clipboard (terminal);
 
   g_signal_emit (G_OBJECT (screen), screen_signals[SELECTION_CHANGED], 0);
 }
