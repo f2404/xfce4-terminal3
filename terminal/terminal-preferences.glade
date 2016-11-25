@@ -2025,7 +2025,7 @@ Opacity setting is not available.</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="title" translatable="yes">Choose text selection background color</property>
+                            <property name="title" translatable="yes">Choose text selection foreground color</property>
                             <property name="rgba">rgb(0,0,0)</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-selection-atkobject">
@@ -2059,7 +2059,7 @@ Opacity setting is not available.</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
-                            <property name="tooltip_text" translatable="yes">Enable this option to set a custom background color for the selection. If disabled the background and text colors will be reversed.</property>
+                            <property name="tooltip_text" translatable="yes">Enable this option to set custom text and background colors for the selection. If disabled the background and text colors will be reversed.</property>
                             <property name="halign">start</property>
                             <property name="use_underline">True</property>
                             <property name="draw_indicator">True</property>
@@ -2084,6 +2084,30 @@ Opacity setting is not available.</property>
                             <property name="left_attach">0</property>
                             <property name="top_attach">1</property>
                           </packing>
+                        </child>
+                        <child>
+                          <object class="GtkColorButton" id="color-selection-bg">
+                            <property name="use_action_appearance">False</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="halign">start</property>
+                            <property name="title" translatable="yes">Choose text selection background color</property>
+                            <property name="rgba">rgb(0,0,0)</property>
+                            <child internal-child="accessible">
+                              <object class="AtkObject" id="color-selection-bg-atkobject">
+                                <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
+                                <property name="AtkObject::accessible-description" translatable="yes">Open a dialog to specify the color</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="top_attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
                         </child>
                       </object>
                     </child>
@@ -2119,7 +2143,7 @@ Opacity setting is not available.</property>
                         <property name="margin_right">6</property>
                         <property name="margin_top">6</property>
                         <property name="margin_bottom">6</property>
-                        <property name="column_homogeneous">True</property>
+                        <property name="column_spacing">2</property>
                         <child>
                           <object class="GtkColorButton" id="color-palette1">
                             <property name="use_action_appearance">False</property>
