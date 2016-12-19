@@ -64,6 +64,8 @@ static void terminal_preferences_dialog_background_set    (GtkFileChooserButton 
                                                            TerminalPreferencesDialog *dialog);
 static void terminal_preferences_dialog_encoding_changed  (GtkComboBox               *combobox,
                                                            TerminalPreferencesDialog *dialog);
+static void terminal_preferences_dialog_custom_command    (GtkWidget                 *button,
+                                                           TerminalPreferencesDialog *dialog);
 static void terminal_preferences_dialog_scroll_unlimited  (GtkWidget                 *button,
                                                            TerminalPreferencesDialog *dialog);
 static void terminal_preferences_dialog_font_use_system   (GtkWidget                 *button,
@@ -140,17 +142,18 @@ terminal_preferences_dialog_init (TerminalPreferencesDialog *dialog)
   gchar            *current;
   GtkTreeIter       current_iter;
   const gchar      *props_active[] = { "title-mode", "command-login-shell",
+                                       "run-custom-command",
                                        "scrolling-on-output", "scrolling-on-keystroke",
                                        "scrolling-bar", "scrolling-unlimited",
                                        "misc-cursor-shape", "misc-cursor-blinks",
                                        "font-allow-bold", "font-use-system",
-                                       "misc-menubar-default",
-                                       "misc-toolbar-default", "misc-borders-default",
-                                       "misc-tab-close-middle-click", "misc-mouse-autohide",
-                                       "misc-rewrap-on-resize", "misc-copy-on-select",
-                                       "shortcuts-no-helpkey", "shortcuts-no-mnemonics",
-                                       "shortcuts-no-menukey", "binding-backspace",
-                                       "binding-delete", "background-mode",
+                                       "misc-menubar-default", "misc-toolbar-default",
+                                       "misc-borders-default", "misc-tab-close-middle-click",
+                                       "misc-mouse-autohide", "misc-rewrap-on-resize",
+                                       "misc-copy-on-select", "shortcuts-no-helpkey",
+                                       "shortcuts-no-mnemonics", "shortcuts-no-menukey",
+                                       "binding-backspace", "binding-delete",
+                                       "binding-ambiguous-width", "background-mode",
                                        "background-image-style", "color-background-vary",
                                        "dropdown-keep-open-default", "dropdown-keep-above",
                                        "dropdown-toggle-focus", "dropdown-status-icon",
@@ -235,11 +238,20 @@ error:
   /* other properties */
   BIND_PROPERTIES ("font-name", "font-name");
   BIND_PROPERTIES ("title-initial", "text");
+  BIND_PROPERTIES ("custom-command", "text");
   BIND_PROPERTIES ("word-chars", "text");
   BIND_PROPERTIES ("scrolling-lines", "value");
   BIND_PROPERTIES ("tab-activity-timeout", "value");
   BIND_PROPERTIES ("background-darkness", "value");
   BIND_PROPERTIES ("background-image-shading", "value");
+
+  /* run custom command button */
+  object = gtk_builder_get_object (GTK_BUILDER (dialog), "run-custom-command");
+  terminal_return_if_fail (G_IS_OBJECT (object));
+  g_signal_connect (G_OBJECT (object), "realize",
+      G_CALLBACK (terminal_preferences_dialog_custom_command), dialog);
+  g_signal_connect (G_OBJECT (object), "clicked",
+      G_CALLBACK (terminal_preferences_dialog_custom_command), dialog);
 
   /* unlimited scrollback button */
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "scrolling-unlimited");
@@ -810,7 +822,7 @@ terminal_preferences_dialog_reset_compat (GtkWidget                 *button,
 {
   GParamSpec  *spec;
   GValue       value = { 0, };
-  const gchar *properties[] = { "binding-backspace", "binding-delete" };
+  const gchar *properties[] = { "binding-backspace", "binding-delete", "binding-ambiguous-width" };
   guint        i;
 
   for (i = 0; i < G_N_ELEMENTS (properties); i++)
@@ -948,6 +960,24 @@ terminal_preferences_dialog_encoding_changed (GtkComboBox               *combobo
       g_object_set (dialog->preferences, "encoding", encoding, NULL);
       g_free (encoding);
     }
+}
+
+
+
+static void
+terminal_preferences_dialog_custom_command (GtkWidget                 *button,
+                                            TerminalPreferencesDialog *dialog)
+{
+  GObject *object;
+  gboolean run_custom_command;
+
+  terminal_return_if_fail (TERMINAL_IS_PREFERENCES_DIALOG (dialog));
+  terminal_return_if_fail (GTK_IS_TOGGLE_BUTTON (widget));
+
+  run_custom_command = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button));
+  object = gtk_builder_get_object (GTK_BUILDER (dialog), "custom-command");
+  terminal_return_if_fail (G_IS_OBJECT (object));
+  g_object_set (G_OBJECT (object), "sensitive", run_custom_command, NULL);
 }
 
 

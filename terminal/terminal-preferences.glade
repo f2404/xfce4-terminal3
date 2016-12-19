@@ -192,6 +192,20 @@
       </row>
     </data>
   </object>
+  <object class="GtkListStore" id="liststore8">
+    <columns>
+      <!-- column-name title -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">Narrow</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">Wide</col>
+      </row>
+    </data>
+  </object>
   <object class="GtkAdjustment" id="scrolling-line">
     <property name="lower">1</property>
     <property name="upper">5242880</property>
@@ -395,6 +409,64 @@
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="run-custom-command">
+                                <property name="label" translatable="yes">Run a _custom command instead of my shell</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">False</property>
+                                <property name="tooltip_text" translatable="yes">Select this option to force Terminal to run custom command instead of your shell when you open new terminals.</property>
+                                <property name="halign">start</property>
+                                <property name="use_underline">True</property>
+                                <property name="draw_indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox" id="hbox3">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkLabel" id="label56">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">C_ustom command:</property>
+                                    <property name="use_underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="custom-command">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="invisible_char">•</property>
+                                    <property name="primary_icon_activatable">False</property>
+                                    <property name="secondary_icon_activatable">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                           </object>
@@ -2152,6 +2224,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Black</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette1-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2172,6 +2245,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Dark Gray</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette9-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2192,6 +2266,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Red</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette2-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2212,6 +2287,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Light Red</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette10-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2232,6 +2308,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Green</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette3-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2252,6 +2329,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Light Green</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette11-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2272,6 +2350,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Brown / Yellow</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette4-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2292,6 +2371,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Yellow</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette12-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2312,6 +2392,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Blue</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette5-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2332,6 +2413,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Light Blue</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette13-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2352,6 +2434,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Magenta</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette6-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2372,6 +2455,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Light Magenta</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette14-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2392,6 +2476,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Cyan</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette7-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2412,6 +2497,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Light Cyan</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette15-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2432,6 +2518,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Light Gray</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette8-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2452,6 +2539,7 @@ Opacity setting is not available.</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">White</property>
                             <property name="rgba">rgb(0,0,0)</property>
+                            <property name="show_editor">True</property>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="color-palette16-atkobject">
                                 <property name="AtkObject::accessible-name" translatable="yes">Color Selector</property>
@@ -2713,8 +2801,38 @@ different terminal behavior.</property>
                               </object>
                               <packing>
                                 <property name="left_attach">0</property>
-                                <property name="top_attach">2</property>
+                                <property name="top_attach">3</property>
                                 <property name="width">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label33">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">_Ambiguous-width characters:</property>
+                                <property name="use_underline">True</property>
+                              </object>
+                              <packing>
+                                <property name="left_attach">0</property>
+                                <property name="top_attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBox" id="binding-ambiguous-width">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="model">liststore8</property>
+                                <child>
+                                  <object class="GtkCellRendererText" id="cellrenderertext10"/>
+                                  <attributes>
+                                    <attribute name="text">0</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left_attach">1</property>
+                                <property name="top_attach">2</property>
                               </packing>
                             </child>
                           </object>
