@@ -74,21 +74,21 @@ enum
 #define NOTEBOOK_NAME PACKAGE_NAME "-notebook"
 const gchar *CSS_SLIM_TABS =
 "#" NOTEBOOK_NAME " tab {\n"
+"  font-weight: normal;\n"
 "  min-height: 0;\n"
-"  padding-top: 2px;\n"
-"  padding-bottom: 2px;\n"
+"  padding: 1px;\n"
+"  margin: 0;\n"
 "}\n"
 "#" NOTEBOOK_NAME " tab button {\n"
 "  min-height: 0;\n"
 "  min-width: 0;\n"
-"  padding: 2px;\n"
-"  margin-top: 2px;\n"
-"  margin-bottom: 2px;\n"
+"  padding: 1px;\n"
+"  margin: 0;\n"
 "}\n"
 "#" NOTEBOOK_NAME " button {\n"
 "  min-height: 0;\n"
 "  min-width: 0;\n"
-"  padding: 2px;\n"
+"  padding: 1px;\n"
 "}\n";
 
 
@@ -910,7 +910,6 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
                                         TerminalWindow  *window)
 {
   TerminalScreen *active;
-  gboolean        was_null;
   const gchar    *encoding;
 
   /* get the new active page */
@@ -922,13 +921,9 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
   /* only update when really changed */
   if (G_LIKELY (window->priv->active != active))
     {
-      /* check if we need to set the size or if this was already done
-       * in the page add function */
-      was_null = (window->priv->active == NULL);
-
       /* last active tab was closed; used by the undo close action to restore tab focus */
-      if (!was_null &&
-          gtk_notebook_page_num (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (window->priv->active)) == -1)
+      if (window->priv->active != NULL &&
+          gtk_notebook_page_num (notebook, GTK_WIDGET (window->priv->active)) == -1)
         window->priv->last_closed_active = window->priv->active;
 
       /* set new active tab */
@@ -943,10 +938,6 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
       /* set charset for menu */
       encoding = terminal_screen_get_encoding (window->priv->active);
       terminal_encoding_action_set_charset (window->priv->encoding_action, encoding);
-
-      /* set the new geometry widget */
-      if (G_LIKELY (!was_null))
-        terminal_screen_set_window_geometry_hints (active, GTK_WINDOW (window));
     }
 
   /* update actions in the window */
@@ -1854,7 +1845,13 @@ title_dialog_response (GtkWidget      *dialog,
                        gint            response,
                        TerminalWindow *window)
 {
-  if (response == GTK_RESPONSE_CLOSE)
+  /* check if we should open the user manual */
+  if (response == GTK_RESPONSE_HELP)
+    {
+      /* open the "Set Title" paragraph in the "Usage" section */
+      xfce_dialog_show_help (GTK_WINDOW (dialog), "terminal", "usage#to_change_the_terminal_title", NULL);
+    }
+  else
     title_dialog_close (dialog, window);
 }
 
@@ -1894,6 +1891,8 @@ terminal_window_action_set_title (GtkAction      *action,
       /* set window height to minimum to fix huge size under wayland */
       gtk_window_set_default_size (GTK_WINDOW (window->priv->title_dialog), -1, 1);
 
+      button = xfce_gtk_button_new_mixed ("help-browser", _("_Help"));
+      gtk_dialog_add_action_widget (GTK_DIALOG (window->priv->title_dialog), button, GTK_RESPONSE_HELP);
       button = xfce_gtk_button_new_mixed ("window-close", _("_Close"));
       gtk_widget_set_can_default (button, TRUE);
       gtk_dialog_add_action_widget (GTK_DIALOG (window->priv->title_dialog), button, GTK_RESPONSE_CLOSE);
