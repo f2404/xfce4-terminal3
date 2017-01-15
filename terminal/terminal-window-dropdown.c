@@ -56,6 +56,7 @@ enum
   PROP_DROPDOWN_KEEP_ABOVE,
   PROP_DROPDOWN_ANIMATION_TIME,
   PROP_DROPDOWN_ALWAYS_SHOW_TABS,
+  PROP_DROPDOWN_SHOW_BORDERS,
   N_PROPERTIES
 };
 
@@ -83,7 +84,6 @@ static void     terminal_window_dropdown_show                    (TerminalWindow
 static void     terminal_window_dropdown_toggle_real             (TerminalWindowDropdown *dropdown,
                                                                   guint32                 timestamp,
                                                                   gboolean                force_show);
-static void     terminal_window_dropdown_update_geometry         (TerminalWindowDropdown *dropdown);
 static void     terminal_dropdown_window_screen_size_changed     (GdkScreen              *screen,
                                                                   TerminalWindowDropdown *dropdown);
 
@@ -202,6 +202,12 @@ terminal_window_dropdown_class_init (TerminalWindowDropdownClass *klass)
                             TRUE,
                             G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
 
+  dropdown_props[PROP_DROPDOWN_SHOW_BORDERS] =
+      g_param_spec_boolean ("dropdown-show-borders",
+                            NULL, NULL,
+                            FALSE,
+                            G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
+
   /* install all properties */
   g_object_class_install_properties (gobject_class, N_PROPERTIES, dropdown_props);
 }
@@ -219,7 +225,6 @@ terminal_window_dropdown_init (TerminalWindowDropdown *dropdown)
   guint           n;
   const gchar    *name;
   gboolean        keep_open;
-  gboolean        show_borders;
 
   dropdown->rel_width = 0.80;
   dropdown->rel_height = 0.50;
@@ -242,8 +247,6 @@ terminal_window_dropdown_init (TerminalWindowDropdown *dropdown)
 
   /* adjust notebook for drop-down usage */
   gtk_notebook_set_tab_pos (GTK_NOTEBOOK (terminal_window_get_notebook (window)), GTK_POS_BOTTOM);
-  g_object_get (terminal_window_get_preferences (window), "misc-borders-default", &show_borders, NULL);
-  gtk_notebook_set_show_border (GTK_NOTEBOOK (terminal_window_get_notebook (window)), show_borders);
   terminal_window_notebook_show_tabs (window);
 
   /* actions we don't want */
@@ -374,6 +377,11 @@ terminal_window_dropdown_set_property (GObject      *object,
 
     case PROP_DROPDOWN_ALWAYS_SHOW_TABS:
       terminal_window_notebook_show_tabs (TERMINAL_WINDOW (dropdown));
+      return;
+
+    case PROP_DROPDOWN_SHOW_BORDERS:
+      gtk_notebook_set_show_border (GTK_NOTEBOOK (terminal_window_get_notebook (window)),
+                                    g_value_get_boolean (value));
       return;
 
     default:
@@ -707,7 +715,7 @@ terminal_window_dropdown_show (TerminalWindowDropdown *dropdown,
   TerminalWindow    *window = TERMINAL_WINDOW (dropdown);
   gint               w, h;
   GdkRectangle       monitor_geo;
-  gint               x_dest, y_dest;
+  gint               x_dest, y_dest, x_pos, y_pos;
   GtkRequisition     req1;
   gboolean           move_to_active;
   gboolean           keep_above;
@@ -804,12 +812,18 @@ terminal_window_dropdown_show (TerminalWindowDropdown *dropdown,
   x_dest = monitor_geo.x + (monitor_geo.width - w) * dropdown->rel_position;
   y_dest = monitor_geo.y;
 
+  /* move */
+  gtk_window_move (GTK_WINDOW (dropdown), x_dest, y_dest);
+
   /* show window */
   if (!visible)
     gtk_window_present_with_time (GTK_WINDOW (dropdown), timestamp);
 
-  /* move */
-  gtk_window_move (GTK_WINDOW (dropdown), x_dest, y_dest);
+  /* check window position after showing it
+   * https://bugzilla.xfce.org/show_bug.cgi?id=10713 */
+  gtk_window_get_position (GTK_WINDOW (dropdown), &x_pos, &y_pos);
+  if (x_pos != x_dest || y_pos != y_dest)
+    gtk_window_move (GTK_WINDOW (dropdown), x_dest, y_dest);
 
   /* force focus to the window */
   terminal_util_activate_window (GTK_WINDOW (dropdown));
@@ -872,19 +886,6 @@ terminal_window_dropdown_toggle_real (TerminalWindowDropdown *dropdown,
       /* popup */
       terminal_window_dropdown_show (dropdown, timestamp);
     }
-}
-
-
-
-static void
-terminal_window_dropdown_update_geometry (TerminalWindowDropdown *dropdown)
-{
-  terminal_return_if_fail (TERMINAL_IS_WINDOW_DROPDOWN (dropdown));
-
-  /* update geometry if toolbar or menu is shown */
-  if (gtk_widget_get_visible (GTK_WIDGET (dropdown))
-      && dropdown->animation_dir == ANIMATION_DIR_NONE)
-    terminal_window_dropdown_show (dropdown, 0);
 }
 
 
@@ -1049,4 +1050,17 @@ terminal_window_dropdown_get_size (TerminalWindowDropdown *dropdown,
     *grid_width = ((monitor_geo.width * dropdown->rel_width) - xpad) / char_width;
   if (G_LIKELY (grid_height != NULL))
     *grid_height = ((monitor_geo.height * dropdown->rel_height) - ypad) / char_height;
+}
+
+
+
+void
+terminal_window_dropdown_update_geometry (TerminalWindowDropdown *dropdown)
+{
+  terminal_return_if_fail (TERMINAL_IS_WINDOW_DROPDOWN (dropdown));
+
+  /* update geometry if toolbar or menu is shown */
+  if (gtk_widget_get_visible (GTK_WIDGET (dropdown))
+      && dropdown->animation_dir == ANIMATION_DIR_NONE)
+    terminal_window_dropdown_show (dropdown, 0);
 }
