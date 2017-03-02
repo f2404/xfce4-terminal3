@@ -25,26 +25,30 @@
 #include <terminal/terminal-image-loader.h>
 #include <terminal/terminal-private.h>
 
+/* max image resolution is 8K */
+#define MAX_IMAGE_WIDTH  7680
+#define MAX_IMAGE_HEIGHT 4320
 
 
-static void terminal_image_loader_finalize         (GObject             *object);
-static void terminal_image_loader_check            (TerminalImageLoader *loader);
-static void terminal_image_loader_tile             (TerminalImageLoader *loader,
-                                                    GdkPixbuf           *target,
-                                                    gint                 width,
-                                                    gint                 height);
-static void terminal_image_loader_center           (TerminalImageLoader *loader,
-                                                    GdkPixbuf           *target,
-                                                    gint                 width,
-                                                    gint                 height);
-static void terminal_image_loader_scale            (TerminalImageLoader *loader,
-                                                    GdkPixbuf           *target,
-                                                    gint                 width,
-                                                    gint                 height);
-static void terminal_image_loader_stretch          (TerminalImageLoader *loader,
-                                                    GdkPixbuf           *target,
-                                                    gint                 width,
-                                                    gint                 height);
+
+static void terminal_image_loader_finalize (GObject             *object);
+static void terminal_image_loader_check    (TerminalImageLoader *loader);
+static void terminal_image_loader_tile     (TerminalImageLoader *loader,
+                                            GdkPixbuf           *target,
+                                            gint                 width,
+                                            gint                 height);
+static void terminal_image_loader_center   (TerminalImageLoader *loader,
+                                            GdkPixbuf           *target,
+                                            gint                 width,
+                                            gint                 height);
+static void terminal_image_loader_scale    (TerminalImageLoader *loader,
+                                            GdkPixbuf           *target,
+                                            gint                 width,
+                                            gint                 height);
+static void terminal_image_loader_stretch  (TerminalImageLoader *loader,
+                                            GdkPixbuf           *target,
+                                            gint                 width,
+                                            gint                 height);
 
 
 struct _TerminalImageLoaderClass
@@ -129,12 +133,25 @@ terminal_image_loader_check (TerminalImageLoader *loader)
 
   if (g_strcmp0 (selected_path, loader->path) != 0)
     {
+      gint width, height;
+
       g_free (loader->path);
       loader->path = g_strdup (selected_path);
 
       if (GDK_IS_PIXBUF (loader->pixbuf))
         g_object_unref (G_OBJECT (loader->pixbuf));
-      loader->pixbuf = gdk_pixbuf_new_from_file (loader->path, NULL);
+
+      if (gdk_pixbuf_get_file_info (loader->path, &width, &height) == NULL)
+        {
+          g_warning ("Unable to load background image file \"%s\"", loader->path);
+          loader->pixbuf = NULL;
+        }
+      else if (width <= MAX_IMAGE_WIDTH && height <= MAX_IMAGE_HEIGHT)
+        loader->pixbuf = gdk_pixbuf_new_from_file (loader->path, NULL);
+      else
+        loader->pixbuf = gdk_pixbuf_new_from_file_at_size (loader->path,
+                                                           MAX_IMAGE_WIDTH, MAX_IMAGE_WIDTH,
+                                                           NULL);
 
       invalidate = TRUE;
     }

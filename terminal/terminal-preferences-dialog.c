@@ -37,6 +37,8 @@
 
 
 static void terminal_preferences_dialog_finalize          (GObject                   *object);
+static void terminal_preferences_dialog_disc_bindings     (GtkWidget                 *widget,
+                                                           TerminalPreferencesDialog *dialog);
 static void terminal_preferences_dialog_response          (GtkWidget                 *widget,
                                                            gint                       response,
                                                            TerminalPreferencesDialog *dialog);
@@ -144,7 +146,8 @@ terminal_preferences_dialog_init (TerminalPreferencesDialog *dialog)
                                        "misc-menubar-default", "misc-toolbar-default",
                                        "misc-borders-default", "misc-tab-close-middle-click",
                                        "misc-mouse-autohide", "misc-rewrap-on-resize",
-                                       "misc-copy-on-select", "shortcuts-no-helpkey",
+                                       "misc-copy-on-select", "misc-slim-tabs",
+                                       "shortcuts-no-helpkey",
                                        "shortcuts-no-mnemonics", "shortcuts-no-menukey",
                                        "binding-backspace", "binding-delete",
                                        "binding-ambiguous-width", "background-mode",
@@ -197,6 +200,8 @@ error:
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "dialog");
   terminal_return_if_fail (G_IS_OBJECT (object));
   g_object_weak_ref (G_OBJECT (object), (GWeakNotify) g_object_unref, dialog);
+  g_signal_connect (G_OBJECT (object), "destroy",
+      G_CALLBACK (terminal_preferences_dialog_disc_bindings), dialog);
   g_signal_connect (G_OBJECT (object), "response",
       G_CALLBACK (terminal_preferences_dialog_response), dialog);
 
@@ -402,11 +407,24 @@ terminal_preferences_dialog_finalize (GObject *object)
 
 
 static void
+terminal_preferences_dialog_disc_bindings (GtkWidget                 *widget,
+                                           TerminalPreferencesDialog *dialog)
+{
+  GSList *li;
+
+  /* disconnect all the bindings */
+  for (li = dialog->bindings; li != NULL; li = li->next)
+    g_object_unref (G_OBJECT (li->data));
+  g_slist_free (dialog->bindings);
+}
+
+
+
+static void
 terminal_preferences_dialog_response (GtkWidget                 *widget,
                                       gint                       response,
                                       TerminalPreferencesDialog *dialog)
 {
-  GSList      *li;
   GObject     *object;
   GObject     *notebook;
   const gchar *section;
@@ -431,11 +449,6 @@ terminal_preferences_dialog_response (GtkWidget                 *widget,
     }
   else
     {
-      /* disconnect all the bindings */
-      for (li = dialog->bindings; li != NULL; li = li->next)
-        g_object_unref (G_OBJECT (li->data));
-      g_slist_free (dialog->bindings);
-
       /* close the preferences dialog */
       gtk_widget_destroy (widget);
     }
@@ -975,12 +988,17 @@ terminal_preferences_dialog_encoding_changed (GtkComboBox               *combobo
 GtkWidget*
 terminal_preferences_dialog_new (gboolean show_drop_down)
 {
-  GtkBuilder *builder;
-  GObject    *dialog;
-  GObject    *object;
-  GObject    *notebook;
+  static GtkBuilder *builder = NULL;
 
-  builder = g_object_new (TERMINAL_TYPE_PREFERENCES_DIALOG, NULL);
+  GObject *dialog;
+  GObject *object;
+  GObject *notebook;
+
+  if (builder == NULL)
+    {
+      builder = g_object_new (TERMINAL_TYPE_PREFERENCES_DIALOG, NULL);
+      g_object_add_weak_pointer (G_OBJECT (builder), (gpointer) &builder);
+    }
 
   object = gtk_builder_get_object (builder, "dropdown-box");
   terminal_return_val_if_fail (GTK_IS_WIDGET (object), NULL);

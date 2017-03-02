@@ -249,6 +249,8 @@ static void         terminal_window_toggle_menubar                (GtkWidget    
                                                                    TerminalWindow         *window);
 static void         terminal_window_menubar_deactivate            (GtkWidget              *widget,
                                                                    TerminalWindow         *window);
+static void         title_dialog_close                            (GtkWidget              *dialog,
+                                                                   TerminalWindow         *window);
 
 
 
@@ -439,6 +441,7 @@ terminal_window_init (TerminalWindow *window)
   /* required for vte transparency support: see https://bugzilla.gnome.org/show_bug.cgi?id=729884 */
   gtk_widget_set_app_paintable (GTK_WIDGET (window), TRUE);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   window->priv->action_group = gtk_action_group_new ("terminal-window");
   gtk_action_group_set_translation_domain (window->priv->action_group,
                                            GETTEXT_PACKAGE);
@@ -456,6 +459,7 @@ terminal_window_init (TerminalWindow *window)
   gtk_ui_manager_add_ui_from_string (window->priv->ui_manager, terminal_window_ui, terminal_window_ui_length, NULL);
 
   accel_group = gtk_ui_manager_get_accel_group (window->priv->ui_manager);
+G_GNUC_END_IGNORE_DEPRECATIONS
   gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
   g_signal_connect_after (G_OBJECT (accel_group), "accel-activate",
       G_CALLBACK (terminal_window_accel_activate), window);
@@ -508,11 +512,15 @@ terminal_window_init (TerminalWindow *window)
 
   /* create encoding action */
   window->priv->encoding_action = terminal_encoding_action_new ("set-encoding", _("Set _Encoding"));
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   gtk_action_group_add_action (window->priv->action_group, window->priv->encoding_action);
+G_GNUC_END_IGNORE_DEPRECATIONS
   g_signal_connect (G_OBJECT (window->priv->encoding_action), "encoding-changed",
       G_CALLBACK (terminal_window_action_set_encoding), window);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   window->priv->menubar = gtk_ui_manager_get_widget (window->priv->ui_manager, "/main-menu");
+G_GNUC_END_IGNORE_DEPRECATIONS
   gtk_box_pack_start (GTK_BOX (window->priv->vbox), window->priv->menubar, FALSE, FALSE, 0);
   gtk_box_reorder_child (GTK_BOX (window->priv->vbox), window->priv->menubar, 0);
   /* auto-hide menubar if it was shown temporarily */
@@ -537,7 +545,11 @@ terminal_window_init (TerminalWindow *window)
     {
       /* setup fullscreen mode */
       if (!gdk_x11_screen_supports_net_wm_hint (screen, gdk_atom_intern ("_NET_WM_STATE_FULLSCREEN", FALSE)))
-        gtk_action_set_sensitive (window->priv->action_fullscreen, FALSE);
+        {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+          gtk_action_set_sensitive (window->priv->action_fullscreen, FALSE);
+G_GNUC_END_IGNORE_DEPRECATIONS
+        }
     }
 #endif
 }
@@ -549,6 +561,8 @@ terminal_window_finalize (GObject *object)
 {
   TerminalWindow *window = TERMINAL_WINDOW (object);
 
+  if (window->priv->preferences_dialog != NULL)
+    gtk_widget_destroy (window->priv->preferences_dialog);
   g_object_unref (G_OBJECT (window->priv->preferences));
   g_object_unref (G_OBJECT (window->priv->action_group));
   g_object_unref (G_OBJECT (window->priv->ui_manager));
@@ -569,10 +583,24 @@ terminal_window_delete_event (GtkWidget   *widget,
                               GdkEventAny *event)
 {
   TerminalWindow *window = TERMINAL_WINDOW (widget);
+  GtkWidget      *child;
+  gint            n_pages, i;
 
   /* disconnect remove signal if we're closing the window */
   if (terminal_window_confirm_close (window))
     {
+      /* disconnect handlers for closing Set Title dialog */
+      if (window->priv->title_dialog != NULL)
+        {
+          n_pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->priv->notebook));
+          for (i = 0; i < n_pages; i++)
+            {
+              child = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->priv->notebook), i);
+              g_signal_handlers_disconnect_by_func (G_OBJECT (child),
+                  G_CALLBACK (title_dialog_close), window);
+            }
+        }
+
       /* avoid a lot of page remove calls */
       g_signal_handlers_disconnect_by_func (G_OBJECT (window->priv->notebook),
           G_CALLBACK (terminal_window_notebook_page_removed), window);
@@ -603,8 +631,10 @@ terminal_window_state_event (GtkWidget           *widget,
       && gtk_widget_get_visible (widget))
     {
       fullscreen = (event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0;
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       if (gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (window->priv->action_fullscreen)) != fullscreen)
         gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (window->priv->action_fullscreen), fullscreen);
+G_GNUC_END_IGNORE_DEPRECATIONS
     }
 
   if (GTK_WIDGET_CLASS (terminal_window_parent_class)->window_state_event != NULL)
@@ -667,8 +697,11 @@ terminal_window_map_event (GtkWidget   *widget,
                            GdkEventAny *event)
 {
   TerminalWindow *window = TERMINAL_WINDOW (widget);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  gboolean fullscreen = gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (window->priv->action_fullscreen));
+G_GNUC_END_IGNORE_DEPRECATIONS
 
-  if (gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (window->priv->action_fullscreen)))
+  if (fullscreen)
     gtk_window_fullscreen (GTK_WINDOW (widget));
 
   return FALSE;
@@ -839,11 +872,13 @@ terminal_window_accel_activate (GtkAccelGroup   *accel_group,
       /* pretend we handled the accelerator if the event matches one of
        * the insensitive actions, so we don't send weird key events to vte
        * see http://bugzilla.xfce.org/show_bug.cgi?id=3715 */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       if (!gtk_action_is_sensitive (actions[n])
           && gtk_accel_map_lookup_entry (gtk_action_get_accel_path (actions[n]), &key)
           && key.accel_key == accel_key
           && key.accel_mods == accel_mods)
         return TRUE;
+G_GNUC_END_IGNORE_DEPRECATIONS
     }
 
   return FALSE;
@@ -866,12 +901,14 @@ terminal_window_update_actions (TerminalWindow *window)
 
   /* "Detach Tab", "Close Other Tabs" and move tab actions are only sensitive
    * if we have at least two pages */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   gtk_action_set_sensitive (window->priv->action_detach_tab, (n_pages > 1));
   gtk_action_set_sensitive (window->priv->action_close_other_tabs, n_pages > 1);
   gtk_action_set_sensitive (window->priv->action_move_tab_left, n_pages > 1);
   gtk_action_set_sensitive (window->priv->action_move_tab_right, n_pages > 1);
 
   gtk_action_set_sensitive (window->priv->action_undo_close_tab, !g_queue_is_empty (window->priv->closed_tabs_list));
+G_GNUC_END_IGNORE_DEPRECATIONS
 
   /* update the actions for the current terminal screen */
   if (G_LIKELY (window->priv->active != NULL))
@@ -882,6 +919,7 @@ terminal_window_update_actions (TerminalWindow *window)
                     "misc-cycle-tabs", &cycle_tabs,
                     NULL);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       gtk_action_set_sensitive (window->priv->action_prev_tab,
                                 (cycle_tabs && n_pages > 1) || (page_num > 0));
       gtk_action_set_sensitive (window->priv->action_next_tab,
@@ -898,6 +936,7 @@ terminal_window_update_actions (TerminalWindow *window)
       action = g_object_get_qdata (G_OBJECT (window->priv->active), tabs_menu_action_quark);
       if (G_LIKELY (action != NULL))
         gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
+G_GNUC_END_IGNORE_DEPRECATIONS
     }
 }
 
@@ -1175,7 +1214,9 @@ terminal_window_notebook_button_press_event (GtkNotebook    *notebook,
           gtk_notebook_set_current_page (notebook, page_num);
 
           /* show the tab menu */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
           menu = gtk_ui_manager_get_widget (window->priv->ui_manager, "/tab-menu");
+G_GNUC_END_IGNORE_DEPRECATIONS
 #if GTK_CHECK_VERSION (3, 22, 0)
           gtk_menu_popup_at_pointer (GTK_MENU (menu), NULL);
 #else
@@ -1229,7 +1270,7 @@ terminal_window_notebook_scroll_event (GtkNotebook    *notebook,
       gtk_notebook_prev_page (notebook);
       return TRUE;
 
-    case GDK_SCROLL_SMOOTH:
+    default: /* GDK_SCROLL_SMOOTH */
       switch (gtk_notebook_get_tab_pos (notebook)) {
         case GTK_POS_LEFT:
         case GTK_POS_RIGHT:
@@ -1239,8 +1280,7 @@ terminal_window_notebook_scroll_event (GtkNotebook    *notebook,
             gtk_notebook_prev_page (notebook);
           break;
 
-        case GTK_POS_TOP:
-        case GTK_POS_BOTTOM:
+        default: /* GTK_POS_TOP or GTK_POS_BOTTOM */
           if (event->delta_x > 0)
             gtk_notebook_next_page (notebook);
           else if (event->delta_x < 0)
@@ -1321,11 +1361,7 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
           g_object_ref (G_OBJECT (window));
 
           /* remove the document from the source notebook */
-#if GTK_CHECK_VERSION (3,16,0)
           gtk_notebook_detach_tab (GTK_NOTEBOOK (notebook), *screen);
-#else
-          gtk_container_remove (GTK_CONTAINER (notebook), *screen);
-#endif
 
           /* add the screen to the new window */
           terminal_window_add (window, TERMINAL_SCREEN (*screen));
@@ -1384,11 +1420,7 @@ terminal_window_notebook_create_window (GtkNotebook    *notebook,
       g_object_ref (G_OBJECT (screen));
 
       /* remove screen from active window */
-      #if GTK_CHECK_VERSION (3,16,0)
-        gtk_notebook_detach_tab (notebook, child);
-      #else
-        gtk_container_remove (GTK_CONTAINER (notebook), child);
-      #endif
+      gtk_notebook_detach_tab (notebook, child);
 
       /* create new window with the screen */
       g_signal_emit (G_OBJECT (window), window_signals[NEW_WINDOW_WITH_SCREEN], 0, screen, x, y);
@@ -1415,7 +1447,11 @@ terminal_window_get_context_menu (TerminalScreen  *screen,
   GtkWidget *popup = NULL;
 
   if (G_LIKELY (screen == window->priv->active))
-    popup = gtk_ui_manager_get_widget (window->priv->ui_manager, "/popup-menu");
+    {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+      popup = gtk_ui_manager_get_widget (window->priv->ui_manager, "/popup-menu");
+G_GNUC_END_IGNORE_DEPRECATIONS
+    }
 
   return popup;
 }
@@ -1679,16 +1715,23 @@ static void
 terminal_window_action_show_toolbar (GtkToggleAction *action,
                                      TerminalWindow  *window)
 {
+  gboolean show;
+
   terminal_return_if_fail (GTK_IS_UI_MANAGER (window->priv->ui_manager));
   terminal_return_if_fail (GTK_IS_ACTION_GROUP (window->priv->action_group));
 
   terminal_window_size_push (window);
 
-  if (gtk_toggle_action_get_active (action))
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  show = gtk_toggle_action_get_active (action);
+G_GNUC_END_IGNORE_DEPRECATIONS
+  if (show)
     {
       if (window->priv->toolbar == NULL)
         {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
           window->priv->toolbar = gtk_ui_manager_get_widget (window->priv->ui_manager, "/main-toolbar");
+G_GNUC_END_IGNORE_DEPRECATIONS
           gtk_box_pack_start (GTK_BOX (window->priv->vbox), window->priv->toolbar, FALSE, FALSE, 0);
           gtk_box_reorder_child (GTK_BOX (window->priv->vbox),
                                  window->priv->toolbar,
@@ -1711,8 +1754,11 @@ static void
 terminal_window_action_show_borders (GtkToggleAction *action,
                                      TerminalWindow  *window)
 {
-  gtk_window_set_decorated (GTK_WINDOW (window),
-                            gtk_toggle_action_get_active (action));
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  gboolean decorated = gtk_toggle_action_get_active (action);
+G_GNUC_END_IGNORE_DEPRECATIONS
+
+  gtk_window_set_decorated (GTK_WINDOW (window), decorated);
 }
 
 
@@ -1721,9 +1767,14 @@ static void
 terminal_window_action_fullscreen (GtkToggleAction *action,
                                    TerminalWindow  *window)
 {
+  gboolean fullscreen;
+
   if (gtk_widget_get_visible (GTK_WIDGET (window)))
     {
-      if (gtk_toggle_action_get_active (action))
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+      fullscreen = gtk_toggle_action_get_active (action);
+G_GNUC_END_IGNORE_DEPRECATIONS
+      if (fullscreen)
         gtk_window_fullscreen (GTK_WINDOW (window));
       else
         {
@@ -1746,9 +1797,11 @@ terminal_window_action_readonly (GtkToggleAction *action,
 
   terminal_return_if_fail (window->priv->active != NULL);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   input_enabled = !gtk_toggle_action_get_active (action);
   gtk_action_set_sensitive (terminal_window_get_action (window, "reset"), input_enabled);
   gtk_action_set_sensitive (terminal_window_get_action (window, "reset-and-clear"), input_enabled);
+G_GNUC_END_IGNORE_DEPRECATIONS
   terminal_screen_set_input_enabled (window->priv->active, input_enabled);
 }
 
@@ -1844,12 +1897,14 @@ terminal_window_action_goto_tab (GtkRadioAction *action,
   terminal_return_if_fail (GTK_IS_NOTEBOOK (notebook));
   terminal_return_if_fail (GTK_IS_RADIO_ACTION (action));
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   if (gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action)))
     {
       /* switch to the new page */
       page = gtk_radio_action_get_current_value (action);
       gtk_notebook_set_current_page (notebook, page);
     }
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 
@@ -1858,7 +1913,7 @@ static void
 title_dialog_close (GtkWidget      *dialog,
                     TerminalWindow *window)
 {
-  terminal_return_if_fail (window->priv->title_dialog == dialog);
+  terminal_return_if_fail (window->priv->title_dialog != NULL);
 
   /* need for hiding on focus */
   if (window->drop_down)
@@ -1866,7 +1921,7 @@ title_dialog_close (GtkWidget      *dialog,
 
   /* close the dialog */
   window->priv->n_child_windows--;
-  gtk_widget_destroy (dialog);
+  gtk_widget_destroy (window->priv->title_dialog);
   window->priv->title_dialog = NULL;
 }
 
@@ -1957,6 +2012,8 @@ terminal_window_action_set_title (GtkAction      *action,
                         G_CALLBACK (title_dialog_response), window);
       g_signal_connect (G_OBJECT (window->priv->title_dialog), "close",
                         G_CALLBACK (title_dialog_close), window);
+      g_signal_connect (G_OBJECT (window->priv->active), "destroy",
+                        G_CALLBACK (title_dialog_close), window);
     }
 
     if (!gtk_widget_get_visible (window->priv->title_dialog))
@@ -2018,8 +2075,10 @@ terminal_window_action_search_response (GtkWidget      *dialog,
 
   /* update actions */
   can_search = terminal_screen_search_has_gregex (window->priv->active);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   gtk_action_set_sensitive (window->priv->action_search_next, can_search);
   gtk_action_set_sensitive (window->priv->action_search_prev, can_search);
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 
@@ -2192,6 +2251,7 @@ terminal_window_zoom_update_screens (TerminalWindow *window)
 
   /* update zoom actions */
   action = terminal_window_get_action (window, "zoom-in");
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   if (window->zoom == TERMINAL_ZOOM_LEVEL_MAXIMUM)
     gtk_action_set_sensitive (action, FALSE);
   else if (!gtk_action_is_sensitive (action))
@@ -2202,6 +2262,7 @@ terminal_window_zoom_update_screens (TerminalWindow *window)
       gtk_action_set_sensitive (action, FALSE);
     else if (!gtk_action_is_sensitive (action))
       gtk_action_set_sensitive (action, TRUE);
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 
@@ -2276,7 +2337,9 @@ terminal_window_menubar_deactivate (GtkWidget      *widget,
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
 
   action = terminal_window_get_action (window, "show-menubar");
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   terminal_window_action_show_menubar (GTK_TOGGLE_ACTION (action), window);
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 
@@ -2312,6 +2375,7 @@ terminal_window_new (const gchar       *role,
                 "misc-borders-default", &show_borders,
                 NULL);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   /* setup full screen */
   if (fullscreen && gtk_action_is_sensitive (window->priv->action_fullscreen))
     gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (window->priv->action_fullscreen), TRUE);
@@ -2334,6 +2398,7 @@ terminal_window_new (const gchar       *role,
     show_borders = (borders == TERMINAL_VISIBILITY_SHOW);
   action = terminal_window_get_action (window, "show-borders");
   gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), show_borders);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
   /* property that is not suitable for init */
   g_object_bind_property (G_OBJECT (window->priv->preferences), "misc-tab-position",
@@ -2480,13 +2545,14 @@ terminal_window_get_restart_command (TerminalWindow *window)
   if (G_LIKELY (gscreen != NULL))
     {
       result = g_slist_prepend (result, g_strdup ("--display"));
-      result = g_slist_prepend (result, gdk_screen_make_display_name (gscreen));
+      result = g_slist_prepend (result, g_strdup (gdk_display_get_name (gdk_screen_get_display (gscreen))));
     }
 
   role = gtk_window_get_role (GTK_WINDOW (window));
   if (G_LIKELY (role != NULL))
     result = g_slist_prepend (result, g_strdup_printf ("--role=%s", role));
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   if (gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (window->priv->action_fullscreen)))
     result = g_slist_prepend (result, g_strdup ("--fullscreen"));
 
@@ -2507,6 +2573,7 @@ terminal_window_get_restart_command (TerminalWindow *window)
     result = g_slist_prepend (result, g_strdup ("--show-toolbar"));
   else
     result = g_slist_prepend (result, g_strdup ("--hide-toolbar"));
+G_GNUC_END_IGNORE_DEPRECATIONS
 
   if (window->zoom != TERMINAL_ZOOM_LEVEL_DEFAULT)
     result = g_slist_prepend (result, g_strdup_printf ("--zoom=%d", window->zoom));
@@ -2613,7 +2680,9 @@ GtkAction*
 terminal_window_get_action (TerminalWindow *window,
                             const gchar    *action_name)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   return gtk_action_group_get_action (window->priv->action_group, action_name);
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 
@@ -2700,18 +2769,26 @@ terminal_window_rebuild_tabs_menu (TerminalWindow *window)
   if (window->priv->tabs_menu_merge_id != 0)
     {
       /* remove merge id */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       gtk_ui_manager_remove_ui (window->priv->ui_manager, window->priv->tabs_menu_merge_id);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
       /* drop all the old accels from the action group */
       for (lp = window->priv->tabs_menu_actions; lp != NULL; lp = lp->next)
-        gtk_action_group_remove_action (window->priv->action_group, GTK_ACTION (lp->data));
+        {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+          gtk_action_group_remove_action (window->priv->action_group, GTK_ACTION (lp->data));
+G_GNUC_END_IGNORE_DEPRECATIONS
+        }
 
       g_slist_free (window->priv->tabs_menu_actions);
       window->priv->tabs_menu_actions = NULL;
     }
 
   /* create a new merge id */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   window->priv->tabs_menu_merge_id = gtk_ui_manager_new_merge_id (window->priv->ui_manager);
+G_GNUC_END_IGNORE_DEPRECATIONS
   terminal_assert (window->priv->tabs_menu_actions == NULL);
 
   /* walk the tabs */
@@ -2723,6 +2800,7 @@ terminal_window_rebuild_tabs_menu (TerminalWindow *window)
       g_snprintf (name, sizeof (name), "goto-tab-%d", n + 1);
 
       /* create action */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       radio_action = gtk_radio_action_new (name, NULL, NULL, NULL, n);
       gtk_action_set_sensitive (GTK_ACTION (radio_action), npages > 1);
       g_object_bind_property (G_OBJECT (page), "title",
@@ -2731,6 +2809,7 @@ terminal_window_rebuild_tabs_menu (TerminalWindow *window)
       gtk_radio_action_set_group (radio_action, group);
       group = gtk_radio_action_get_group (radio_action);
       gtk_action_group_add_action (window->priv->action_group, GTK_ACTION (radio_action));
+G_GNUC_END_IGNORE_DEPRECATIONS
       g_signal_connect (G_OBJECT (radio_action), "activate",
           G_CALLBACK (terminal_window_action_goto_tab), window->priv->notebook);
 
@@ -2739,22 +2818,30 @@ terminal_window_rebuild_tabs_menu (TerminalWindow *window)
                                radio_action, g_object_unref);
 
       /* add action in the menu */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       gtk_ui_manager_add_ui (window->priv->ui_manager, window->priv->tabs_menu_merge_id,
                              "/main-menu/tabs-menu/placeholder-tab-items",
                              name, name, GTK_UI_MANAGER_MENUITEM, FALSE);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
       if (npages > 1)
         {
           /* add to right-click tab menu */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
           gtk_ui_manager_add_ui (window->priv->ui_manager, window->priv->tabs_menu_merge_id,
                                  "/tab-menu/tabs-menu/placeholder-tab-items",
                                  name, name, GTK_UI_MANAGER_MENUITEM, FALSE);
+G_GNUC_END_IGNORE_DEPRECATIONS
         }
 
       /* set an accelerator path */
       g_snprintf (name, sizeof (name), "<Actions>/terminal-window/goto-tab-%d", n + 1);
       if (gtk_accel_map_lookup_entry (name, &key) && key.accel_key != 0)
-        gtk_action_set_accel_path (GTK_ACTION (radio_action), name);
+        {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+          gtk_action_set_accel_path (GTK_ACTION (radio_action), name);
+G_GNUC_END_IGNORE_DEPRECATIONS
+        }
 
       /* store */
       window->priv->tabs_menu_actions = g_slist_prepend (window->priv->tabs_menu_actions, radio_action);
@@ -2772,9 +2859,13 @@ void
 terminal_window_action_show_menubar (GtkToggleAction *action,
                                      TerminalWindow  *window)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  gboolean show = gtk_toggle_action_get_active (action);
+G_GNUC_END_IGNORE_DEPRECATIONS
+
   terminal_window_size_push (window);
 
-  if (gtk_toggle_action_get_active (action))
+  if (show)
     gtk_widget_show (window->priv->menubar);
   else
     gtk_widget_hide (window->priv->menubar);

@@ -14,8 +14,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Xfce Apps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-01-13 18:30+0100\n"
-"PO-Revision-Date: 2017-01-14 07:50+0000\n"
+"POT-Creation-Date: 2017-01-25 12:30+0100\n"
+"PO-Revision-Date: 2017-01-26 06:51+0000\n"
 "Last-Translator: Igor <f2404@yandex.ru>\n"
 "Language-Team: Russian (http://www.transifex.com/xfce/xfce-apps/language/ru/)\n"
 "MIME-Version: 1.0\n"
@@ -367,15 +367,15 @@ msgstr "Для параметра \"--zoom\" в качестве значени�
 msgid "Unknown option \"%s\""
 msgstr "Неизвестный параметр \"%s\""
 
-#: ../terminal/terminal-preferences-dialog.c:358
+#: ../terminal/terminal-preferences-dialog.c:359
 msgid "All Files"
 msgstr "Все файлы"
 
-#: ../terminal/terminal-preferences-dialog.c:364
+#: ../terminal/terminal-preferences-dialog.c:365
 msgid "Image Files"
 msgstr "Файлы изображений"
 
-#: ../terminal/terminal-preferences-dialog.c:789
+#: ../terminal/terminal-preferences-dialog.c:790
 msgid "Load Presets..."
 msgstr "Загрузить предустановки"
 
@@ -405,7 +405,7 @@ msgstr "Закрыть эту вкладку"
 msgid "Find"
 msgstr "Поиск"
 
-#: ../terminal/terminal-search-dialog.c:93 ../terminal/terminal-window.c:1928
+#: ../terminal/terminal-search-dialog.c:93 ../terminal/terminal-window.c:1927
 msgid "_Close"
 msgstr "_Закрыть"
 
@@ -493,15 +493,15 @@ msgstr "Получены неверные данные о цвете: невер
 msgid "Failed to open the URL '%s'"
 msgstr "Не удалось открыть адрес \"%s\""
 
-#: ../terminal/terminal-window-dropdown.c:262
+#: ../terminal/terminal-window-dropdown.c:263
 msgid "Keep window open when it loses focus"
 msgstr "Сохранять окно открытым при потере фокуса"
 
-#: ../terminal/terminal-window-dropdown.c:353
+#: ../terminal/terminal-window-dropdown.c:354
 msgid "Drop-down Terminal"
 msgstr "Выпадающий терминал"
 
-#: ../terminal/terminal-window-dropdown.c:354
+#: ../terminal/terminal-window-dropdown.c:355
 msgid "Toggle Drop-down Terminal"
 msgstr "Включает выпадающее окно терминала"
 
@@ -673,7 +673,7 @@ msgstr "Переместить вкладку _влево"
 msgid "Move Tab _Right"
 msgstr "Переместить вкладку в_право"
 
-#: ../terminal/terminal-window.c:344 ../terminal/terminal-window.c:1926
+#: ../terminal/terminal-window.c:344 ../terminal/terminal-window.c:1925
 msgid "_Help"
 msgstr "_Справка"
 
@@ -742,7 +742,7 @@ msgstr "_Установить кодировку"
 msgid "Warning"
 msgstr "Предупреждение"
 
-#: ../terminal/terminal-window.c:706 ../terminal/terminal-window.c:2085
+#: ../terminal/terminal-window.c:706 ../terminal/terminal-window.c:2084
 msgid "_Cancel"
 msgstr "_Отмена"
 
@@ -761,31 +761,31 @@ msgstr "Закрыть все вкладки?"
 msgid "Do _not ask me again"
 msgstr "_Больше не спрашивать"
 
-#: ../terminal/terminal-window.c:1917
+#: ../terminal/terminal-window.c:1916
 msgid "Window Title|Set Title"
 msgstr "Задать заголовок"
 
-#: ../terminal/terminal-window.c:1938
+#: ../terminal/terminal-window.c:1937
 msgid "_Title:"
 msgstr "_Заголовок:"
 
-#: ../terminal/terminal-window.c:1950
+#: ../terminal/terminal-window.c:1949
 msgid "Enter the title for the current terminal tab"
 msgstr "Введите заголовок для текущей вкладки"
 
-#: ../terminal/terminal-window.c:2004
+#: ../terminal/terminal-window.c:2003
 msgid "Failed to create the regular expression"
 msgstr "Не удалось создать регулярное выражение"
 
-#: ../terminal/terminal-window.c:2082
+#: ../terminal/terminal-window.c:2081
 msgid "Save contents..."
 msgstr "Сохранить содержимое..."
 
-#: ../terminal/terminal-window.c:2086
+#: ../terminal/terminal-window.c:2085
 msgid "_Save"
 msgstr "_Сохранить"
 
-#: ../terminal/terminal-window.c:2123
+#: ../terminal/terminal-window.c:2122
 msgid "Failed to save terminal contents"
 msgstr "Не удалось сохранить содержимое терминала"
 
@@ -1388,63 +1388,72 @@ msgstr "Со_вместимость"
 
 #: ../terminal/terminal-preferences.glade.h:146
 msgid ""
-"Consider the following characters part of a _word\n"
+"Consider the following\n"
+"characters part of a _word\n"
 "when double clicking:"
-msgstr "Считать следующие символы _частью слова\nпри двойном щелчке:"
-
-#: ../terminal/terminal-preferences.glade.h:148
-msgid "Rese_t double click options to defaults"
-msgstr "_Сбросить настройки двойного щелчка мыши"
+msgstr "Считать следующие\nсимволы _частью слова\nпри двойном щелчке:"
 
 #: ../terminal/terminal-preferences.glade.h:149
+msgid "Rese_t"
+msgstr "_Сброс"
+
+#: ../terminal/terminal-preferences.glade.h:150
+msgid "Reset double click options to defaults"
+msgstr "Сбросить настройки двойного щелчка мыши"
+
+#: ../terminal/terminal-preferences.glade.h:151
 msgid "Double Click"
 msgstr "Двойной щелчок"
 
-#: ../terminal/terminal-preferences.glade.h:150
+#: ../terminal/terminal-preferences.glade.h:152
 msgid "Default character e_ncoding:"
 msgstr "_Кодировка по умолчанию:"
 
-#: ../terminal/terminal-preferences.glade.h:151
+#: ../terminal/terminal-preferences.glade.h:153
 msgid "Encoding"
 msgstr "Кодировка"
 
-#: ../terminal/terminal-preferences.glade.h:152
+#: ../terminal/terminal-preferences.glade.h:154
 msgid "Disable all me_nu access keys (such as Alt+f)"
 msgstr "Отключить _все клавиши доступа к меню (например, Alt+f)"
 
-#: ../terminal/terminal-preferences.glade.h:153
+#: ../terminal/terminal-preferences.glade.h:155
 msgid "Disable m_enu shortcut key (F10 by default)"
 msgstr "Отключить быструю клавишу показа _меню (по умолчанию F10)"
 
-#: ../terminal/terminal-preferences.glade.h:154
+#: ../terminal/terminal-preferences.glade.h:156
 msgid "Disable _help window shortcut key (F1 by default)"
 msgstr "Отключить быструю клавишу показа _справки (по умолчанию F1)"
 
-#: ../terminal/terminal-preferences.glade.h:155
+#: ../terminal/terminal-preferences.glade.h:157
 msgid "Shortcuts"
 msgstr "Быстрые клавиши"
 
-#: ../terminal/terminal-preferences.glade.h:156
+#: ../terminal/terminal-preferences.glade.h:158
 msgid "Use _middle mouse click to close tabs"
 msgstr "Закрывать вкладки по щелчку с_редней кнопки мыши"
 
-#: ../terminal/terminal-preferences.glade.h:157
+#: ../terminal/terminal-preferences.glade.h:159
 msgid "Auto-hi_de mouse pointer"
 msgstr "Пр_ятать курсор мыши"
 
-#: ../terminal/terminal-preferences.glade.h:158
+#: ../terminal/terminal-preferences.glade.h:160
 msgid "Re_wrap terminal contents on resize"
 msgstr "_Переносить содержимое терминала при изменении размера"
 
-#: ../terminal/terminal-preferences.glade.h:159
+#: ../terminal/terminal-preferences.glade.h:161
 msgid "Automatically _copy selection to clipboard"
 msgstr "Автоматически копировать выделение в бу_фер обмена"
 
-#: ../terminal/terminal-preferences.glade.h:160
+#: ../terminal/terminal-preferences.glade.h:162
+msgid "Use custom styling to make tabs _slim (restart required)"
+msgstr "Сделать вкладки _узкими с помощью собственного стиля (требуется перезапуск)"
+
+#: ../terminal/terminal-preferences.glade.h:163
 msgid "Misc"
 msgstr "Разное"
 
-#: ../terminal/terminal-preferences.glade.h:161
+#: ../terminal/terminal-preferences.glade.h:164
 msgid "Ad_vanced"
 msgstr "_Дополнительно"
 

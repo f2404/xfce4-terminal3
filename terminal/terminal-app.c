@@ -433,7 +433,7 @@ terminal_app_new_window (TerminalWindow *window,
   screen = gtk_window_get_screen (GTK_WINDOW (window));
 
   win_attr = terminal_window_attr_new ();
-  win_attr->display = gdk_screen_make_display_name (screen);
+  win_attr->display = g_strdup (gdk_display_get_name (gdk_screen_get_display (screen)));
   tab_attr = win_attr->tabs->data;
   tab_attr->directory = g_strdup (working_directory);
   if (window->font)
@@ -483,6 +483,7 @@ terminal_app_new_window_with_terminal (TerminalWindow *existing,
                                        TERMINAL_VISIBILITY_DEFAULT);
 
   /* set new window position */
+  printf("%d %d\n", x, y);
   if (x > -1 && y > -1)
     gtk_window_move (GTK_WINDOW (window), x, y);
 
@@ -685,13 +686,18 @@ terminal_app_open_window (TerminalApp        *app,
   gboolean         reuse_window = FALSE;
   GdkDisplay      *attr_display;
   gint             attr_screen_num;
-#if GTK_CHECK_VERSION (3,20,0) && defined (GDK_WINDOWING_X11)
+#if GTK_CHECK_VERSION (3, 20, 0) && defined (GDK_WINDOWING_X11)
   TerminalScreen  *active_terminal;
   GdkGravity       gravity = GDK_GRAVITY_NORTH_WEST;
   gint             mask = NoValue, x, y;
   guint            width, height;
-  gint             screen_width, screen_height;
+  gint             screen_width = 0, screen_height = 0;
   gint             window_width, window_height;
+#endif
+#if GTK_CHECK_VERSION (3, 22, 0) && defined (GDK_WINDOWING_X11)
+  GdkMonitor      *monitor;
+  GdkRectangle     monitor_geo;
+  gint             i, n;
 #endif
 
   terminal_return_if_fail (TERMINAL_IS_APP (app));
@@ -832,7 +838,7 @@ terminal_app_open_window (TerminalApp        *app,
         geometry = g_strdup (attr->geometry);
 
       /* try to apply the geometry to the window */
-#if GTK_CHECK_VERSION (3,20,0) && defined (GDK_WINDOWING_X11)
+#if GTK_CHECK_VERSION (3, 20, 0) && defined (GDK_WINDOWING_X11)
       mask = XParseGeometry (geometry, &x, &y, &width, &height);
       if (((mask & WidthValue) && (mask & HeightValue)) || ((mask & XValue) && (mask & YValue)))
         {
@@ -851,8 +857,19 @@ terminal_app_open_window (TerminalApp        *app,
           if ((mask & XValue) && (mask & YValue))
             {
               screen = gtk_window_get_screen (GTK_WINDOW (window));
+  #if GTK_CHECK_VERSION (3, 22, 0)
+              n = gdk_display_get_n_monitors (gdk_screen_get_display (screen));
+              for (i = 0; i < n; ++i)
+                {
+                  monitor = gdk_display_get_monitor (gdk_screen_get_display (screen), i);
+                  gdk_monitor_get_geometry (monitor, &monitor_geo);
+                  screen_width += monitor_geo.width;
+                  screen_height += monitor_geo.height;
+                }
+  #else
               screen_width = gdk_screen_get_width (screen);
               screen_height = gdk_screen_get_height (screen);
+  #endif
               gtk_window_get_default_size (GTK_WINDOW (window), &window_width, &window_height);
               if (mask & XNegative)
                 {
@@ -865,6 +882,7 @@ terminal_app_open_window (TerminalApp        *app,
                   gravity = (mask & XNegative) ? GDK_GRAVITY_SOUTH_EAST : GDK_GRAVITY_SOUTH_WEST;
                 }
               gtk_window_set_gravity (GTK_WINDOW (window), gravity);
+              printf("%d %d\n", x, y);
               gtk_window_move (GTK_WINDOW (window), x, y);
             }
         }

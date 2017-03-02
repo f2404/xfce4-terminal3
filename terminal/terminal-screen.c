@@ -773,7 +773,7 @@ static gchar**
 terminal_screen_get_child_environment (TerminalScreen *screen)
 {
   GtkWidget     *toplevel;
-  gchar         *display_name;
+  const gchar   *display_name;
   gchar        **result;
   gchar        **p;
   guint          n;
@@ -816,9 +816,8 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
       result[n++] = g_strdup_printf ("WINDOWID=%ld", (glong) gdk_x11_window_get_xid (gtk_widget_get_window (toplevel)));
 
       /* determine the DISPLAY value for the command */
-      display_name = gdk_screen_make_display_name (gtk_widget_get_screen (toplevel));
+      display_name = gdk_display_get_name (gdk_screen_get_display (gtk_widget_get_screen (toplevel)));
       result[n++] = g_strdup_printf ("DISPLAY=%s", display_name);
-      g_free (display_name);
     }
 #endif
 
@@ -1241,7 +1240,7 @@ terminal_screen_vte_selection_changed (VteTerminal    *terminal,
   /* copy vte selection to GDK_SELECTION_CLIPBOARD if option is set */
   g_object_get (G_OBJECT (screen->preferences),
                 "misc-copy-on-select", &copy_on_select, NULL);
-  if (copy_on_select)
+  if (copy_on_select && vte_terminal_get_has_selection (terminal))
     vte_terminal_copy_clipboard (terminal);
 
   g_signal_emit (G_OBJECT (screen), screen_signals[SELECTION_CHANGED], 0);
@@ -2179,7 +2178,6 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
 
   screen->tab_label = gtk_label_new (NULL);
   gtk_widget_set_margin_start (screen->tab_label, 2);
-  gtk_label_set_width_chars (GTK_LABEL (screen->tab_label), 10);
   gtk_box_pack_start  (GTK_BOX (hbox), screen->tab_label, TRUE, TRUE, 0);
   g_object_bind_property (G_OBJECT (screen), "title",
                           G_OBJECT (screen->tab_label), "label",
@@ -2327,7 +2325,7 @@ terminal_screen_update_scrolling_bar (TerminalScreen *screen)
           gtk_widget_show (screen->scrollbar);
           break;
 
-        case TERMINAL_SCROLLBAR_RIGHT:
+        default: /* TERMINAL_SCROLLBAR_RIGHT */
           gtk_box_reorder_child (GTK_BOX (screen), screen->scrollbar, 1);
           gtk_widget_show (screen->scrollbar);
           break;
