@@ -686,7 +686,6 @@ terminal_app_open_window (TerminalApp        *app,
   GdkDisplay      *attr_display;
   gint             attr_screen_num;
 #if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
-  TerminalScreen  *active_terminal;
   GdkGravity       gravity = GDK_GRAVITY_NORTH_WEST;
   gint             mask = NoValue, x, y, new_x, new_y;
   guint            width, height, new_width, new_height;
@@ -818,58 +817,42 @@ terminal_app_open_window (TerminalApp        *app,
           g_free (geometry);
           geometry = g_strdup (attr->geometry);
           mask = XParseGeometry (geometry, &new_x, &new_y, &new_width, &new_height);
+
           if (mask & WidthValue)
-            {
-              width = new_width;
-              if (mask & HeightValue)
-                height = new_height;
-            }
+            width = new_width;
+          if (mask & HeightValue)
+            height = new_height;
           if (mask & XValue)
-            {
-              x = new_x;
-              if (mask & YValue)
-                y = new_y;
-            }
+            x = new_x;
+          if (mask & YValue)
+            y = new_y;
         }
 
-      if ((mask & WidthValue) || (mask & XValue))
-        {
-          active_terminal = terminal_window_get_active (TERMINAL_WINDOW (window));
-          if (G_LIKELY (active_terminal != NULL))
-            {
-              /* save window geometry to prevent overriding */
-              terminal_window_set_grid_size (TERMINAL_WINDOW (window), width, height);
-
-              terminal_screen_force_resize_window (active_terminal, GTK_WINDOW (window),
-                                                   width, height);
-            }
-
-          if ((mask & XValue) || (mask & YValue))
-            {
-              screen = gtk_window_get_screen (GTK_WINDOW (window));
+        if ((mask & XValue) || (mask & YValue))
+          {
+            screen = gtk_window_get_screen (GTK_WINDOW (window));
 #if GTK_CHECK_VERSION (3, 22, 0)
-              gdk_window_get_geometry (gdk_screen_get_root_window (screen), NULL, NULL,
-                                   &screen_width, &screen_height);
+            gdk_window_get_geometry (gdk_screen_get_root_window (screen), NULL, NULL,
+                                     &screen_width, &screen_height);
 #else
-              screen_width = gdk_screen_get_width (screen);
-              screen_height = gdk_screen_get_height (screen);
+            screen_width = gdk_screen_get_width (screen);
+            screen_height = gdk_screen_get_height (screen);
 #endif
-              gtk_window_get_default_size (GTK_WINDOW (window), &window_width, &window_height);
-              if (mask & XNegative)
-                {
-                  x = screen_width - window_width + x;
-                  gravity = GDK_GRAVITY_NORTH_EAST;
-                }
-              if (mask & YNegative)
-                {
-                  y = screen_height - window_height + y;
-                  gravity = (mask & XNegative) ? GDK_GRAVITY_SOUTH_EAST : GDK_GRAVITY_SOUTH_WEST;
-                }
-              gtk_window_set_gravity (GTK_WINDOW (window), gravity);
-              gtk_window_move (GTK_WINDOW (window), x, y);
-            }
-        }
-      else
+            gtk_window_get_default_size (GTK_WINDOW (window), &window_width, &window_height);
+            if (mask & XNegative)
+              {
+                x = screen_width - window_width + x;
+                gravity = GDK_GRAVITY_NORTH_EAST;
+              }
+            if (mask & YNegative)
+              {
+                y = screen_height - window_height + y;
+                gravity = (mask & XNegative) ? GDK_GRAVITY_SOUTH_EAST : GDK_GRAVITY_SOUTH_WEST;
+              }
+            gtk_window_set_gravity (GTK_WINDOW (window), gravity);
+            gtk_window_move (GTK_WINDOW (window), x, y);
+          }
+      else if (!(mask & WidthValue) && !(mask & XValue))
 #else
       if (!gtk_window_parse_geometry (GTK_WINDOW (window), geometry))
 #endif
@@ -893,6 +876,11 @@ terminal_app_open_window (TerminalApp        *app,
       terminal_window_add (TERMINAL_WINDOW (window), terminal);
       terminal_screen_launch_child (terminal);
     }
+
+  /* save window geometry to prevent overriding */
+  terminal_window_set_grid_size (TERMINAL_WINDOW (window), width, height);
+  terminal_screen_force_resize_window (terminal_window_get_active (TERMINAL_WINDOW (window)),
+                                       GTK_WINDOW (window), width, height);
 
   /* show the window */
   if (attr->drop_down)
