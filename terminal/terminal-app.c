@@ -831,13 +831,13 @@ terminal_app_open_window (TerminalApp        *app,
         if ((mask & XValue) || (mask & YValue))
           {
             screen = gtk_window_get_screen (GTK_WINDOW (window));
-#if GTK_CHECK_VERSION (3, 22, 0)
+  #if GTK_CHECK_VERSION (3, 22, 0)
             gdk_window_get_geometry (gdk_screen_get_root_window (screen), NULL, NULL,
                                      &screen_width, &screen_height);
-#else
+  #else
             screen_width = gdk_screen_get_width (screen);
             screen_height = gdk_screen_get_height (screen);
-#endif
+  #endif
             gtk_window_get_default_size (GTK_WINDOW (window), &window_width, &window_height);
             if (mask & XNegative)
               {
