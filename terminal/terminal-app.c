@@ -678,14 +678,14 @@ terminal_app_open_window (TerminalApp        *app,
 {
   TerminalTabAttr *tab_attr = NULL;
   GtkWidget       *window;
-  GtkWidget       *terminal;
+  TerminalScreen  *terminal;
   GdkScreen       *screen;
   gchar           *geometry;
   GSList          *lp;
   gboolean         reuse_window = FALSE;
   GdkDisplay      *attr_display;
   gint             attr_screen_num;
-#if GTK_CHECK_VERSION (3, 20, 0) && defined (GDK_WINDOWING_X11)
+#if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
   TerminalScreen  *active_terminal;
   GdkGravity       gravity = GDK_GRAVITY_NORTH_WEST;
   gint             mask = NoValue, x, y;
@@ -797,25 +797,6 @@ terminal_app_open_window (TerminalApp        *app,
       TERMINAL_WINDOW (window)->zoom = attr->zoom;
     }
 
-  /* add the tabs */
-  for (lp = attr->tabs; lp != NULL; lp = lp->next)
-    {
-      terminal = g_object_new (TERMINAL_TYPE_SCREEN, NULL);
-
-      tab_attr = lp->data;
-      if (tab_attr->command != NULL)
-        terminal_screen_set_custom_command (TERMINAL_SCREEN (terminal), tab_attr->command);
-      if (tab_attr->directory != NULL)
-        terminal_screen_set_working_directory (TERMINAL_SCREEN (terminal), tab_attr->directory);
-      if (tab_attr->title != NULL)
-        terminal_screen_set_custom_title (TERMINAL_SCREEN (terminal), tab_attr->title);
-      terminal_screen_set_hold (TERMINAL_SCREEN (terminal), tab_attr->hold);
-
-      terminal_window_add (TERMINAL_WINDOW (window), TERMINAL_SCREEN (terminal));
-
-      terminal_screen_launch_child (TERMINAL_SCREEN (terminal));
-    }
-
   if (!attr->drop_down)
     {
       /* don't apply other attributes to the window when reusing, just present it to user */
@@ -834,22 +815,28 @@ terminal_app_open_window (TerminalApp        *app,
         geometry = g_strdup (attr->geometry);
 
       /* try to apply the geometry to the window */
-#if GTK_CHECK_VERSION (3, 20, 0) && defined (GDK_WINDOWING_X11)
+#if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
       mask = XParseGeometry (geometry, &x, &y, &width, &height);
       if (((mask & WidthValue) && (mask & HeightValue)) || ((mask & XValue) && (mask & YValue)))
         {
-          if ((mask & WidthValue) && (mask & HeightValue))
+          /* use geometry from settings if command line parameter doesn't provide it */
+          if (!(mask & WidthValue) || !(mask & HeightValue))
             {
-              active_terminal = terminal_window_get_active (TERMINAL_WINDOW (window));
-              if (G_LIKELY (active_terminal != NULL))
-                {
-                  /* save window geometry to prevent overriding */
-                  terminal_window_set_grid_size (TERMINAL_WINDOW (window), width, height);
-
-                  terminal_screen_force_resize_window (active_terminal, GTK_WINDOW (window),
-                                                       width, height);
-                }
+              g_free (geometry);
+              g_object_get (G_OBJECT (app->preferences), "misc-default-geometry", &geometry, NULL);
+              XParseGeometry (geometry, NULL, NULL, &width, &height);
             }
+
+          active_terminal = terminal_window_get_active (TERMINAL_WINDOW (window));
+          if (G_LIKELY (active_terminal != NULL))
+            {
+              /* save window geometry to prevent overriding */
+              terminal_window_set_grid_size (TERMINAL_WINDOW (window), width, height);
+
+              terminal_screen_force_resize_window (active_terminal, GTK_WINDOW (window),
+                                                   width, height);
+            }
+
           if ((mask & XValue) && (mask & YValue))
             {
               screen = gtk_window_get_screen (GTK_WINDOW (window));
@@ -883,6 +870,21 @@ terminal_app_open_window (TerminalApp        *app,
 
       /* cleanup */
       g_free (geometry);
+    }
+
+  /* add the tabs */
+  for (lp = attr->tabs; lp != NULL; lp = lp->next)
+    {
+      tab_attr = lp->data;
+      terminal = terminal_screen_new (tab_attr->command,
+                                      tab_attr->directory,
+                                      tab_attr->title,
+                                      tab_attr->hold,
+                                      width,
+                                      height);
+
+      terminal_window_add (TERMINAL_WINDOW (window), terminal);
+      terminal_screen_launch_child (terminal);
     }
 
   /* show the window */
