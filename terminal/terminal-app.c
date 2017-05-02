@@ -688,7 +688,7 @@ terminal_app_open_window (TerminalApp        *app,
 #if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
   GdkGravity       gravity = GDK_GRAVITY_NORTH_WEST;
   gint             mask = NoValue, x, y, new_x, new_y;
-  guint            width, height, new_width, new_height;
+  guint            width = 0, height = 0, new_width, new_height;
   gint             screen_width = 0, screen_height = 0;
   gint             window_width, window_height;
 #endif
@@ -877,16 +877,17 @@ terminal_app_open_window (TerminalApp        *app,
       terminal_screen_launch_child (terminal);
     }
 
-  /* save window geometry to prevent overriding */
-  terminal_window_set_grid_size (TERMINAL_WINDOW (window), width, height);
-  terminal_screen_force_resize_window (terminal_window_get_active (TERMINAL_WINDOW (window)),
-                                       GTK_WINDOW (window), width, height);
-
   /* show the window */
   if (attr->drop_down)
     terminal_window_dropdown_toggle (TERMINAL_WINDOW_DROPDOWN (window), attr->startup_id, reuse_window);
   else
-    gtk_widget_show (window);
+    {
+      /* save window geometry to prevent overriding */
+      terminal_window_set_grid_size (TERMINAL_WINDOW (window), width, height);
+      terminal_screen_force_resize_window (terminal_window_get_active (TERMINAL_WINDOW (window)),
+                                           GTK_WINDOW (window), width, height);
+      gtk_widget_show (window);
+    }
 }
 
 
