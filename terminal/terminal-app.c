@@ -688,8 +688,8 @@ terminal_app_open_window (TerminalApp        *app,
 #if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
   TerminalScreen  *active_terminal;
   GdkGravity       gravity = GDK_GRAVITY_NORTH_WEST;
-  gint             mask = NoValue, x, y;
-  guint            width, height;
+  gint             mask = NoValue, x, y, new_x, new_y;
+  guint            width, height, new_width, new_height;
   gint             screen_width = 0, screen_height = 0;
   gint             window_width, window_height;
 #endif
@@ -806,27 +806,34 @@ terminal_app_open_window (TerminalApp        *app,
           return;
         }
 
-      /* set the window geometry, this can only be set after one of the tabs
-       * has been added, because vte is the geometry widget, so atleast one
-       * call should have been made to terminal_screen_set_window_geometry_hints */
-      if (G_LIKELY (attr->geometry == NULL))
-        g_object_get (G_OBJECT (app->preferences), "misc-default-geometry", &geometry, NULL);
-      else
-        geometry = g_strdup (attr->geometry);
-
       /* try to apply the geometry to the window */
+      g_object_get (G_OBJECT (app->preferences), "misc-default-geometry", &geometry, NULL);
 #if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
+      /* defaults */
       mask = XParseGeometry (geometry, &x, &y, &width, &height);
-      if (((mask & WidthValue) && (mask & HeightValue)) || ((mask & XValue) && (mask & YValue)))
-        {
-          /* use geometry from settings if command line parameter doesn't provide it */
-          if (!(mask & WidthValue) || !(mask & HeightValue))
-            {
-              g_free (geometry);
-              g_object_get (G_OBJECT (app->preferences), "misc-default-geometry", &geometry, NULL);
-              XParseGeometry (geometry, NULL, NULL, &width, &height);
-            }
 
+      /* geometry provided via command line parameter */
+      if (G_UNLIKELY (attr->geometry != NULL))
+        {
+          g_free (geometry);
+          geometry = g_strdup (attr->geometry);
+          mask = XParseGeometry (geometry, &new_x, &new_y, &new_width, &new_height);
+          if (mask & WidthValue)
+            {
+              width = new_width;
+              if (mask & HeightValue)
+                height = new_height;
+            }
+          if (mask & XValue)
+            {
+              x = new_x;
+              if (mask & YValue)
+                y = new_y;
+            }
+        }
+
+      if ((mask & WidthValue) || (mask & XValue))
+        {
           active_terminal = terminal_window_get_active (TERMINAL_WINDOW (window));
           if (G_LIKELY (active_terminal != NULL))
             {
@@ -837,16 +844,16 @@ terminal_app_open_window (TerminalApp        *app,
                                                    width, height);
             }
 
-          if ((mask & XValue) && (mask & YValue))
+          if ((mask & XValue) || (mask & YValue))
             {
               screen = gtk_window_get_screen (GTK_WINDOW (window));
-  #if GTK_CHECK_VERSION (3, 22, 0)
+#if GTK_CHECK_VERSION (3, 22, 0)
               gdk_window_get_geometry (gdk_screen_get_root_window (screen), NULL, NULL,
-                                       &screen_width, &screen_height);
-  #else
+                                   &screen_width, &screen_height);
+#else
               screen_width = gdk_screen_get_width (screen);
               screen_height = gdk_screen_get_height (screen);
-  #endif
+#endif
               gtk_window_get_default_size (GTK_WINDOW (window), &window_width, &window_height);
               if (mask & XNegative)
                 {
