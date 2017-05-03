@@ -685,10 +685,10 @@ terminal_app_open_window (TerminalApp        *app,
   gboolean         reuse_window = FALSE;
   GdkDisplay      *attr_display;
   gint             attr_screen_num;
-#if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
+#ifdef GDK_WINDOWING_X11
   GdkGravity       gravity = GDK_GRAVITY_NORTH_WEST;
   gint             mask = NoValue, x, y, new_x, new_y;
-  guint            width = 0, height = 0, new_width, new_height;
+  guint            width = 1, height = 1, new_width, new_height;
   gint             screen_width = 0, screen_height = 0;
   gint             window_width, window_height;
 #endif
@@ -807,7 +807,7 @@ terminal_app_open_window (TerminalApp        *app,
 
       /* try to apply the geometry to the window */
       g_object_get (G_OBJECT (app->preferences), "misc-default-geometry", &geometry, NULL);
-#if /*GTK_CHECK_VERSION (3, 20, 0) &&*/ defined (GDK_WINDOWING_X11)
+#ifdef GDK_WINDOWING_X11
       /* defaults */
       mask = XParseGeometry (geometry, &x, &y, &width, &height);
 
