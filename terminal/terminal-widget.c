@@ -646,10 +646,13 @@ terminal_widget_open_uri (TerminalWidget *widget,
                           const gchar    *wlink,
                           gint            tag)
 {
-  GtkWindow *window = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (widget)));
-  GError    *error = NULL;
-  gchar     *uri;
-  guint      i;
+  GtkWindow   *window = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (widget)));
+  GtkWidget   *popover;
+  GtkWidget   *label;
+  GdkRectangle rect;
+  GError      *error = NULL;
+  gchar       *uri, *escaped;
+  guint        i;
 
   for (i = 0; i < G_N_ELEMENTS (regex_patterns); i++)
     {
@@ -689,10 +692,23 @@ terminal_widget_open_uri (TerminalWidget *widget,
 #endif
         {
           /* escape ampersand symbols, etc. */
-          uri = g_markup_escape_text (uri, -1);
+          escaped = g_markup_escape_text (uri, -1);
           /* tell the user that we were unable to open the responsible application */
-          xfce_dialog_show_error (window, error, _("Failed to open the URL '%s'"), uri);
+          xfce_dialog_show_error (window, error, _("Failed to open the URL '%s'"), escaped);
+          g_free (escaped);
           g_error_free (error);
+        }
+      else
+        {
+          /* show popover as an indication that the link has been opened */
+          popover = gtk_popover_new (GTK_WIDGET (widget));
+          label = gtk_label_new (uri);
+          gtk_container_add (GTK_CONTAINER (popover), label);
+          gtk_widget_get_pointer (GTK_WIDGET (widget), &rect.x, &rect.y);
+          rect.width = rect.height = -1;
+          gtk_popover_set_pointing_to (GTK_POPOVER (popover), &rect);
+          gtk_popover_set_position (GTK_POPOVER (popover), GTK_POS_BOTTOM);
+          gtk_widget_show_all (popover);
         }
 
       g_free (uri);
