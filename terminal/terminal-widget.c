@@ -89,7 +89,9 @@ static gboolean terminal_widget_key_press_event       (GtkWidget        *widget,
                                                        GdkEventKey      *event);
 static void     terminal_widget_open_uri              (TerminalWidget   *widget,
                                                        const gchar      *link,
-                                                       gint              tag);
+                                                       gint              tag,
+                                                       gint              x,
+                                                       gint              y);
 static void     terminal_widget_update_highlight_urls (TerminalWidget   *widget);
 
 
@@ -250,7 +252,7 @@ terminal_widget_context_menu_open (TerminalWidget *widget,
   tag  = g_object_get_data (G_OBJECT (item), "terminal-widget-tag");
 
   if (G_LIKELY (wlink != NULL && tag != NULL))
-    terminal_widget_open_uri (widget, wlink, *tag);
+    terminal_widget_open_uri (widget, wlink, *tag, -1, -1);
 }
 
 
@@ -403,7 +405,7 @@ terminal_widget_button_press_event (GtkWidget       *widget,
           match = vte_terminal_match_check_event (VTE_TERMINAL (widget), (GdkEvent *) event, &tag);
           if (G_UNLIKELY (match != NULL))
             {
-              terminal_widget_open_uri (TERMINAL_WIDGET (widget), match, tag);
+              terminal_widget_open_uri (TERMINAL_WIDGET (widget), match, tag, event->x, event->y);
               g_free (match);
               return TRUE;
             }
@@ -644,15 +646,18 @@ terminal_widget_key_press_event (GtkWidget    *widget,
 static void
 terminal_widget_open_uri (TerminalWidget *widget,
                           const gchar    *wlink,
-                          gint            tag)
+                          gint            tag,
+                          gint            x,
+                          gint            y)
 {
   GtkWindow   *window = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (widget)));
   GtkWidget   *popover;
   GtkWidget   *label;
-  GdkRectangle rect;
+  GdkRectangle rect = {x, y, -1, -1};
   GError      *error = NULL;
   gchar       *uri, *escaped;
   guint        i;
+  gboolean     show_feedback = TRUE;
 
   for (i = 0; i < G_N_ELEMENTS (regex_patterns); i++)
     {
@@ -672,10 +677,8 @@ terminal_widget_open_uri (TerminalWidget *widget,
             break;
 
           case PATTERN_TYPE_EMAIL:
-            if (strncmp (wlink, MAILTO, strlen (MAILTO)) == 0)
-              uri = g_strdup (wlink);
-            else
-              uri = g_strconcat (MAILTO, wlink, NULL);
+            uri = strncmp (wlink, MAILTO, strlen (MAILTO)) == 0
+                ? g_strdup (wlink) : g_strconcat (MAILTO, wlink, NULL);
             break;
 
           default:
@@ -698,14 +701,12 @@ terminal_widget_open_uri (TerminalWidget *widget,
           g_free (escaped);
           g_error_free (error);
         }
-      else
+      else if (show_feedback && x != -1 && y != -1)
         {
           /* show popover as an indication that the link has been opened */
           popover = gtk_popover_new (GTK_WIDGET (widget));
           label = gtk_label_new (uri);
           gtk_container_add (GTK_CONTAINER (popover), label);
-          gtk_widget_get_pointer (GTK_WIDGET (widget), &rect.x, &rect.y);
-          rect.width = rect.height = -1;
           gtk_popover_set_pointing_to (GTK_POPOVER (popover), &rect);
           gtk_popover_set_position (GTK_POPOVER (popover), GTK_POS_BOTTOM);
           gtk_widget_show_all (popover);
@@ -738,8 +739,7 @@ terminal_widget_update_highlight_urls (TerminalWidget *widget)
       for (i = 0; i < G_N_ELEMENTS (regex_patterns); i++)
         if (widget->regex_tags[i] != -1)
           {
-            vte_terminal_match_remove (VTE_TERMINAL (widget),
-                                       widget->regex_tags[i]);
+            vte_terminal_match_remove (VTE_TERMINAL (widget), widget->regex_tags[i]);
             widget->regex_tags[i] = -1;
           }
     }
@@ -768,17 +768,14 @@ terminal_widget_update_highlight_urls (TerminalWidget *widget)
 #endif
           if (G_UNLIKELY (error != NULL))
             {
-              g_critical ("Failed to parse regular expression pattern %d: %s",
-                          i, error->message);
+              g_critical ("Failed to parse regular expression pattern %d: %s", i, error->message);
               g_error_free (error);
               continue;
             }
 
           /* set the new regular expression */
-          widget->regex_tags[i] = vte_terminal_match_add_gregex (VTE_TERMINAL (widget),
-                                                                 regex, 0);
-          vte_terminal_match_set_cursor_type (VTE_TERMINAL (widget),
-                                              widget->regex_tags[i], GDK_HAND2);
+          widget->regex_tags[i] = vte_terminal_match_add_gregex (VTE_TERMINAL (widget), regex, 0);
+          vte_terminal_match_set_cursor_type (VTE_TERMINAL (widget), widget->regex_tags[i], GDK_HAND2);
           /* release the regex owned by vte now */
           g_regex_unref (regex);
         }
