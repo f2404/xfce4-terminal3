@@ -89,9 +89,7 @@ static gboolean terminal_widget_key_press_event       (GtkWidget        *widget,
                                                        GdkEventKey      *event);
 static void     terminal_widget_open_uri              (TerminalWidget   *widget,
                                                        const gchar      *link,
-                                                       gint              tag,
-                                                       gint              x,
-                                                       gint              y);
+                                                       gint              tag);
 static void     terminal_widget_update_highlight_urls (TerminalWidget   *widget);
 
 
@@ -252,7 +250,7 @@ terminal_widget_context_menu_open (TerminalWidget *widget,
   tag  = g_object_get_data (G_OBJECT (item), "terminal-widget-tag");
 
   if (G_LIKELY (wlink != NULL && tag != NULL))
-    terminal_widget_open_uri (widget, wlink, *tag, -1, -1);
+    terminal_widget_open_uri (widget, wlink, *tag);
 }
 
 
@@ -405,7 +403,7 @@ terminal_widget_button_press_event (GtkWidget       *widget,
           match = vte_terminal_match_check_event (VTE_TERMINAL (widget), (GdkEvent *) event, &tag);
           if (G_UNLIKELY (match != NULL))
             {
-              terminal_widget_open_uri (TERMINAL_WIDGET (widget), match, tag, event->x, event->y);
+              terminal_widget_open_uri (TERMINAL_WIDGET (widget), match, tag);
               g_free (match);
               return TRUE;
             }
@@ -646,18 +644,12 @@ terminal_widget_key_press_event (GtkWidget    *widget,
 static void
 terminal_widget_open_uri (TerminalWidget *widget,
                           const gchar    *wlink,
-                          gint            tag,
-                          gint            x,
-                          gint            y)
+                          gint            tag)
 {
-  GtkWindow   *window = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (widget)));
-  GtkWidget   *popover;
-  GtkWidget   *label;
-  GdkRectangle rect = {x, y, -1, -1};
-  GError      *error = NULL;
-  gchar       *uri, *escaped;
-  guint        i;
-  gboolean     show_feedback = TRUE;
+  GtkWindow *window = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (widget)));
+  GError    *error = NULL;
+  gchar     *uri, *escaped;
+  guint      i;
 
   for (i = 0; i < G_N_ELEMENTS (regex_patterns); i++)
     {
@@ -700,16 +692,6 @@ terminal_widget_open_uri (TerminalWidget *widget,
           xfce_dialog_show_error (window, error, _("Failed to open the URL '%s'"), escaped);
           g_free (escaped);
           g_error_free (error);
-        }
-      else if (show_feedback && x != -1 && y != -1)
-        {
-          /* show popover as an indication that the link has been opened */
-          popover = gtk_popover_new (GTK_WIDGET (widget));
-          label = gtk_label_new (uri);
-          gtk_container_add (GTK_CONTAINER (popover), label);
-          gtk_popover_set_pointing_to (GTK_POPOVER (popover), &rect);
-          gtk_popover_set_position (GTK_POPOVER (popover), GTK_POS_BOTTOM);
-          gtk_widget_show_all (popover);
         }
 
       g_free (uri);
