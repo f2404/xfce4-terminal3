@@ -738,7 +738,7 @@ terminal_window_dropdown_show (TerminalWindowDropdown *dropdown,
   TerminalWindow    *window = TERMINAL_WINDOW (dropdown);
   gint               w, h;
   GdkRectangle       monitor_geo;
-  gint               x_dest, y_dest, x_pos, y_pos;
+  gint               x_dest, y_dest/*, x_pos, y_pos*/;
   GtkRequisition     req1;
   gboolean           move_to_active;
   gboolean           keep_above;
@@ -838,8 +838,8 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 
   /* check window position after showing it
    * https://bugzilla.xfce.org/show_bug.cgi?id=10713 */
-  gtk_window_get_position (GTK_WINDOW (dropdown), &x_pos, &y_pos);
-  if (x_pos != x_dest || y_pos != y_dest)
+  /*gtk_window_get_position (GTK_WINDOW (dropdown), &x_pos, &y_pos);
+  if (x_pos != x_dest || y_pos != y_dest)*/
     gtk_window_move (GTK_WINDOW (dropdown), x_dest, y_dest);
 
   /* force focus to the window */
