@@ -584,7 +584,8 @@ terminal_window_dropdown_get_monitor_geometry (GdkScreen    *screen,
 {
 #if GTK_CHECK_VERSION (3, 22, 0)
   GdkDisplay *display = gdk_screen_get_display (screen);
-  GdkMonitor *monitor = gdk_display_get_monitor_at_window (display, gtk_widget_get_window (widget));
+  //GdkMonitor *monitor = gdk_display_get_monitor_at_window (display, gtk_widget_get_window (widget));
+  GdkMonitor *monitor = gdk_display_get_monitor (display, monitor_num);
   gdk_monitor_get_geometry (monitor, geometry);
 #else
   gdk_screen_get_monitor_geometry (screen, monitor_num, geometry);
