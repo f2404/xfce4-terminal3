@@ -306,6 +306,31 @@ terminal_window_attr_parse (gint              argc,
               tab_attr->title = g_strdup (s);
             }
         }
+      else if (terminal_option_cmp ("dynamic-title", 0, argc, argv, &n, &s))
+        {
+          if (G_UNLIKELY (s == NULL))
+            {
+              g_set_error (error, G_SHELL_ERROR, G_SHELL_ERROR_FAILED,
+                           _("Option \"--dynamic-title\" requires specifying "
+                             "the dynamic title as its parameter"));
+              goto failed;
+            }
+          else if (g_ascii_strcasecmp (s, "replace") == 0)
+            tab_attr->dynamic_title = TERMINAL_TITLE_REPLACE;
+          else if (g_ascii_strcasecmp (s, "before") == 0)
+            tab_attr->dynamic_title = TERMINAL_TITLE_PREPEND;
+          else if (g_ascii_strcasecmp (s, "after") == 0)
+            tab_attr->dynamic_title = TERMINAL_TITLE_APPEND;
+          else if (g_ascii_strcasecmp (s, "none") == 0)
+            tab_attr->dynamic_title = TERMINAL_TITLE_HIDE;
+          else
+            {
+              g_set_error (error, G_SHELL_ERROR, G_SHELL_ERROR_FAILED,
+                           _("Invalid argument for option \"--dynamic-title\": "
+                             "%s"), s);
+              goto failed;
+            }
+        }
       else if (terminal_option_cmp ("hold", 'H', argc, argv, &n, NULL))
         {
           tab_attr->hold = TRUE;

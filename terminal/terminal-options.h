@@ -21,6 +21,7 @@
 #define TERMINAL_OPTIONS_H
 
 #include <glib.h>
+#include <terminal/terminal-preferences.h>
 
 G_BEGIN_DECLS
 
@@ -53,10 +54,11 @@ typedef enum
 
 typedef struct
 {
-  gchar    **command;
-  gchar     *directory;
-  gchar     *title;
-  guint      hold : 1;
+  gchar       **command;
+  gchar        *directory;
+  gchar        *title;
+  TerminalTitle dynamic_title;
+  guint         hold : 1;
 } TerminalTabAttr;
 
 typedef struct
