@@ -605,6 +605,7 @@ terminal_window_attr_new (void)
   win_attr->zoom = TERMINAL_ZOOM_LEVEL_DEFAULT;
 
   tab_attr = g_slice_new0 (TerminalTabAttr);
+  tab_attr->dynamic_title_mode = TERMINAL_TITLE_DEFAULT;
   win_attr->tabs = g_slist_prepend (NULL, tab_attr);
 
   return win_attr;
