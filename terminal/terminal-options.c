@@ -136,6 +136,7 @@ terminal_tab_attr_free (TerminalTabAttr *attr)
   g_strfreev (attr->command);
   g_free (attr->directory);
   g_free (attr->title);
+  g_free (attr->initial_title);
   g_slice_free (TerminalTabAttr, attr);
 }
 
@@ -306,29 +307,44 @@ terminal_window_attr_parse (gint              argc,
               tab_attr->title = g_strdup (s);
             }
         }
-      else if (terminal_option_cmp ("dynamic-title", 0, argc, argv, &n, &s))
+      else if (terminal_option_cmp ("dynamic-title-mode", 0, argc, argv, &n, &s))
         {
           if (G_UNLIKELY (s == NULL))
             {
               g_set_error (error, G_SHELL_ERROR, G_SHELL_ERROR_FAILED,
-                           _("Option \"--dynamic-title\" requires specifying "
-                             "the dynamic title as its parameter"));
+                           _("Option \"--dynamic-title-mode\" requires specifying "
+                             "the dynamic title mode as its parameter"));
               goto failed;
             }
           else if (g_ascii_strcasecmp (s, "replace") == 0)
-            tab_attr->dynamic_title = TERMINAL_TITLE_REPLACE;
+            tab_attr->dynamic_title_mode = TERMINAL_TITLE_REPLACE;
           else if (g_ascii_strcasecmp (s, "before") == 0)
-            tab_attr->dynamic_title = TERMINAL_TITLE_PREPEND;
+            tab_attr->dynamic_title_mode = TERMINAL_TITLE_PREPEND;
           else if (g_ascii_strcasecmp (s, "after") == 0)
-            tab_attr->dynamic_title = TERMINAL_TITLE_APPEND;
+            tab_attr->dynamic_title_mode = TERMINAL_TITLE_APPEND;
           else if (g_ascii_strcasecmp (s, "none") == 0)
-            tab_attr->dynamic_title = TERMINAL_TITLE_HIDE;
+            tab_attr->dynamic_title_mode = TERMINAL_TITLE_HIDE;
           else
             {
               g_set_error (error, G_SHELL_ERROR, G_SHELL_ERROR_FAILED,
                            _("Invalid argument for option \"--dynamic-title\": "
                              "%s"), s);
               goto failed;
+            }
+        }
+      else if (terminal_option_cmp ("initial-title", 0, argc, argv, &n, &s))
+        {
+          if (G_UNLIKELY (s == NULL))
+            {
+              g_set_error (error, G_SHELL_ERROR, G_SHELL_ERROR_FAILED,
+                           _("Option \"--initial-title\" requires specifying "
+                             "the initial title as its parameter"));
+              goto failed;
+            }
+          else
+            {
+              g_free (tab_attr->initial_title);
+              tab_attr->initial_title = g_strdup (s);
             }
         }
       else if (terminal_option_cmp ("hold", 'H', argc, argv, &n, NULL))

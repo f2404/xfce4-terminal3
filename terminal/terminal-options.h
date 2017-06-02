@@ -57,7 +57,8 @@ typedef struct
   gchar       **command;
   gchar        *directory;
   gchar        *title;
-  TerminalTitle dynamic_title;
+  gchar        *initial_title;
+  TerminalTitle dynamic_title_mode;
   guint         hold : 1;
 } TerminalTabAttr;
 
