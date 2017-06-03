@@ -1908,7 +1908,7 @@ terminal_screen_get_title (TerminalScreen *screen)
   vte_title = vte_terminal_get_window_title (VTE_TERMINAL (screen->terminal));
 
   if (G_UNLIKELY (screen->initial_title != NULL))
-      initial = terminal_screen_parse_title (screen, screen->initial_title);
+    initial = terminal_screen_parse_title (screen, screen->initial_title);
   else
     {
       g_object_get (G_OBJECT (screen->preferences), "title-initial", &tmp, NULL);
