@@ -244,7 +244,7 @@ static void         terminal_window_toggle_menubar                (GtkWidget    
                                                                    TerminalWindow         *window);
 static void         terminal_window_menubar_deactivate            (GtkWidget              *widget,
                                                                    TerminalWindow         *window);
-static void         title_dialog_close                            (GtkWidget              *dialog,
+static void         title_popover_close                           (GtkWidget              *popover,
                                                                    TerminalWindow         *window);
 
 
@@ -270,7 +270,7 @@ struct _TerminalWindowPrivate
   GtkActionGroup      *action_group;
 
   GtkWidget           *search_dialog;
-  GtkWidget           *title_dialog;
+  GtkWidget           *title_popover;
 
   /* pushed size of screen */
   glong                grid_width;
@@ -583,14 +583,14 @@ terminal_window_delete_event (GtkWidget   *widget,
   if (terminal_window_confirm_close (window))
     {
       /* disconnect handlers for closing Set Title dialog */
-      if (window->priv->title_dialog != NULL)
+      if (window->priv->title_popover != NULL)
         {
           n_pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->priv->notebook));
           for (i = 0; i < n_pages; i++)
             {
               child = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->priv->notebook), i);
               g_signal_handlers_disconnect_by_func (G_OBJECT (child),
-                  G_CALLBACK (title_dialog_close), window);
+                  G_CALLBACK (title_popover_close), window);
             }
         }
 
@@ -1867,43 +1867,35 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 
 
 static void
-title_dialog_close (GtkWidget      *dialog,
-                    TerminalWindow *window)
+title_popover_close (GtkWidget      *popover,
+                     TerminalWindow *window)
 {
-  terminal_return_if_fail (window->priv->title_dialog != NULL);
+  terminal_return_if_fail (window->priv->title_popover != NULL);
 
   /* need for hiding on focus */
   if (window->drop_down)
     terminal_util_activate_window (GTK_WINDOW (window));
 
   /* close the dialog */
-  window->priv->n_child_windows--;
-  gtk_widget_destroy (window->priv->title_dialog);
-  window->priv->title_dialog = NULL;
+  gtk_widget_destroy (window->priv->title_popover);
+  window->priv->title_popover = NULL;
 }
 
 
 
 static void
-title_dialog_response (GtkWidget      *dialog,
-                       gint            response,
-                       TerminalWindow *window)
+title_popover_help (GtkWidget      *popover,
+                    TerminalWindow *window)
 {
-  /* check if we should open the user manual */
-  if (response == GTK_RESPONSE_HELP)
-    {
-      /* open the "Set Title" paragraph in the "Usage" section */
-      xfce_dialog_show_help (GTK_WINDOW (dialog), "terminal", "usage#to_change_the_terminal_title", NULL);
-    }
-  else
-    title_dialog_close (dialog, window);
+  /* open the "Set Title" paragraph in the "Usage" section */
+  xfce_dialog_show_help (GTK_WINDOW (window), "terminal", "usage#to_change_the_terminal_title", NULL);
 }
 
 
 
 static void
-title_dialog_clear (GtkWidget            *entry,
-                    GtkEntryIconPosition  icon_pos)
+title_popover_clear (GtkWidget            *entry,
+                     GtkEntryIconPosition  icon_pos)
 {
   if (icon_pos == GTK_ENTRY_ICON_SECONDARY)
     gtk_entry_set_text (GTK_ENTRY (entry), "");
@@ -1923,29 +1915,23 @@ terminal_window_action_set_title (GtkAction      *action,
 
   terminal_return_if_fail (window->priv->active != NULL);
 
-  if (window->priv->title_dialog == NULL)
+  if (window->priv->title_popover == NULL)
     {
-      window->priv->title_dialog =
-          gtk_dialog_new_with_buttons (Q_("Window Title|Set Title"),
-                                       GTK_WINDOW (window),
-                                       GTK_DIALOG_DESTROY_WITH_PARENT,
-                                       NULL,
-                                       NULL);
+      if (gtk_notebook_get_show_tabs (GTK_NOTEBOOK (window->priv->notebook)))
+        {
+          window->priv->title_popover =
+              gtk_popover_new (gtk_notebook_get_tab_label (GTK_NOTEBOOK (window->priv->notebook),
+                                                           GTK_WIDGET (window->priv->active)));
+        }
+      else
+        {
+          window->priv->title_popover = gtk_popover_new (GTK_WIDGET (window->priv->menubar));
+          gtk_popover_set_position (GTK_POPOVER (window->priv->title_popover), GTK_POS_BOTTOM);
+        }
 
-      /* set window height to minimum to fix huge size under wayland */
-      gtk_window_set_default_size (GTK_WINDOW (window->priv->title_dialog), -1, 1);
-
-      button = xfce_gtk_button_new_mixed ("help-browser", _("_Help"));
-      gtk_dialog_add_action_widget (GTK_DIALOG (window->priv->title_dialog), button, GTK_RESPONSE_HELP);
-      button = xfce_gtk_button_new_mixed ("window-close", _("_Close"));
-      gtk_widget_set_can_default (button, TRUE);
-      gtk_dialog_add_action_widget (GTK_DIALOG (window->priv->title_dialog), button, GTK_RESPONSE_CLOSE);
-      gtk_dialog_set_default_response (GTK_DIALOG (window->priv->title_dialog), GTK_RESPONSE_CLOSE);
-
-      box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
+      box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
       gtk_container_set_border_width (GTK_CONTAINER (box), 6);
-      gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (window->priv->title_dialog))),
-                          box, TRUE, TRUE, 0);
+      gtk_container_add (GTK_CONTAINER (window->priv->title_popover), box);
 
       label = gtk_label_new_with_mnemonic (_("_Title:"));
       gtk_box_pack_start (GTK_BOX (box), label, FALSE, TRUE, 0);
@@ -1955,7 +1941,8 @@ terminal_window_action_set_title (GtkAction      *action,
       gtk_entry_set_activates_default (GTK_ENTRY (entry), TRUE);
       gtk_label_set_mnemonic_widget (GTK_LABEL (label), entry);
       gtk_entry_set_icon_from_icon_name (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, "edit-clear");
-      g_signal_connect (G_OBJECT (entry), "icon-release", G_CALLBACK (title_dialog_clear), NULL);
+      g_signal_connect (G_OBJECT (entry), "icon-release", G_CALLBACK (title_popover_clear), NULL);
+      g_signal_connect (G_OBJECT (entry), "activate", G_CALLBACK (title_popover_close), window);
 
       /* set Atk description and label relation for the entry */
       object = gtk_widget_get_accessible (entry);
@@ -1965,19 +1952,23 @@ terminal_window_action_set_title (GtkAction      *action,
                               G_OBJECT (entry), "text",
                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
-      g_signal_connect (G_OBJECT (window->priv->title_dialog), "response",
-                        G_CALLBACK (title_dialog_response), window);
-      g_signal_connect (G_OBJECT (window->priv->title_dialog), "close",
-                        G_CALLBACK (title_dialog_close), window);
-      g_signal_connect (G_OBJECT (window->priv->active), "destroy",
-                        G_CALLBACK (title_dialog_close), window);
+      button = gtk_button_new_from_icon_name ("help-browser", GTK_ICON_SIZE_BUTTON);
+      gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
+      gtk_widget_set_tooltip_text (button, _("Help"));
+      g_signal_connect (G_OBJECT (button), "clicked", G_CALLBACK (title_popover_help), window);
+      gtk_box_pack_start (GTK_BOX (box), button, TRUE, TRUE, 0);
+
+      button = gtk_button_new_from_icon_name ("window-close-symbolic", GTK_ICON_SIZE_BUTTON);
+      gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
+      gtk_widget_set_tooltip_text (button, _("Close"));
+      g_signal_connect (G_OBJECT (button), "clicked", G_CALLBACK (title_popover_close), window);
+      gtk_box_pack_start (GTK_BOX (box), button, TRUE, TRUE, 0);
+
+      g_signal_connect (G_OBJECT (window->priv->title_popover), "closed",
+                        G_CALLBACK (title_popover_close), window);
     }
 
-    if (!gtk_widget_get_visible (window->priv->title_dialog))
-      window->priv->n_child_windows++;
-
-    gtk_widget_show_all (window->priv->title_dialog);
-    gtk_window_present (GTK_WINDOW (window->priv->title_dialog));
+    gtk_widget_show_all (window->priv->title_popover);
 }
 
 
