@@ -2456,6 +2456,16 @@ terminal_screen_set_input_enabled (TerminalScreen *screen,
 
 
 void
+terminal_screen_set_scroll_on_output (TerminalScreen *screen,
+                                      gboolean        enabled)
+{
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  vte_terminal_set_scroll_on_output (VTE_TERMINAL (screen->terminal), enabled);
+}
+
+
+
+void
 terminal_screen_save_contents (TerminalScreen *screen,
                                GOutputStream  *stream,
                                GError         *error)

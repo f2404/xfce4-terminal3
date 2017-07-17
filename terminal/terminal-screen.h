@@ -116,9 +116,13 @@ void            terminal_screen_update_font               (TerminalScreen *scree
 void            terminal_screen_set_input_enabled         (TerminalScreen *screen,
                                                            gboolean        enabled);
 
+void            terminal_screen_set_scroll_on_output      (TerminalScreen *screen,
+                                                           gboolean        enabled);
+
 void            terminal_screen_save_contents             (TerminalScreen *screen,
                                                            GOutputStream  *stream,
                                                            GError         *error);
+
 
 G_END_DECLS
 

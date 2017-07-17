@@ -200,6 +200,8 @@ static void         terminal_window_action_fullscreen             (GtkToggleActi
                                                                    TerminalWindow         *window);
 static void         terminal_window_action_readonly               (GtkToggleAction        *action,
                                                                    TerminalWindow         *window);
+static void         terminal_window_action_scroll_on_output       (GtkToggleAction        *action,
+                                                                   TerminalWindow         *window);
 static void         terminal_window_action_zoom_in                (GtkAction              *action,
                                                                    TerminalWindow         *window);
 static void         terminal_window_action_zoom_out               (GtkAction              *action,
@@ -351,6 +353,7 @@ static const GtkToggleActionEntry toggle_action_entries[] =
   { "show-borders", NULL, N_ ("Show Window _Borders"), NULL, N_ ("Show/hide the window decorations"), G_CALLBACK (terminal_window_action_show_borders), TRUE, },
   { "fullscreen", "view-fullscreen", N_ ("_Fullscreen"), "F11", N_ ("Toggle fullscreen mode"), G_CALLBACK (terminal_window_action_fullscreen), FALSE, },
   { "read-only", NULL, N_ ("_Read-Only"), NULL, N_ ("Toggle read-only mode"), G_CALLBACK (terminal_window_action_readonly), FALSE, },
+  { "scroll-on-output", NULL, N_ ("_Scroll on output"), NULL, N_ ("Toggle scroll on output"), G_CALLBACK (terminal_window_action_scroll_on_output), FALSE, },
 };
 
 
@@ -1760,6 +1763,22 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   gtk_action_set_sensitive (terminal_window_get_action (window, "reset-and-clear"), input_enabled);
 G_GNUC_END_IGNORE_DEPRECATIONS
   terminal_screen_set_input_enabled (window->priv->active, input_enabled);
+}
+
+
+
+static void
+terminal_window_action_scroll_on_output (GtkToggleAction *action,
+                                         TerminalWindow  *window)
+{
+  gboolean scroll_enabled;
+
+  terminal_return_if_fail (window->priv->active != NULL);
+
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  scroll_enabled = gtk_toggle_action_get_active (action);
+G_GNUC_END_IGNORE_DEPRECATIONS
+  terminal_screen_set_scroll_on_output (window->priv->active, scroll_enabled);
 }
 
 
