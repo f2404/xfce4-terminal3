@@ -36,36 +36,38 @@
 
 
 
-static void terminal_preferences_dialog_finalize          (GObject                   *object);
-static void terminal_preferences_dialog_disc_bindings     (GtkWidget                 *widget,
-                                                           TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_response          (GtkWidget                 *widget,
-                                                           gint                       response,
-                                                           TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_finalize          (GObject                   *object);
+static void     terminal_preferences_dialog_disc_bindings     (GtkWidget                 *widget,
+                                                               TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_response          (GtkWidget                 *widget,
+                                                               gint                       response,
+                                                               TerminalPreferencesDialog *dialog);
+static gboolean terminal_preferences_dialog_color_press_event (GtkWidget            *widget,
+                                                               GdkEventButton       *event);
 #ifdef GDK_WINDOWING_X11
-static void terminal_preferences_dialog_geometry_changed  (TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_geometry_columns  (GtkAdjustment             *adj,
-                                                           TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_geometry_rows     (GtkAdjustment             *adj,
-                                                           TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_geometry_changed  (TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_geometry_columns  (GtkAdjustment             *adj,
+                                                               TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_geometry_rows     (GtkAdjustment             *adj,
+                                                               TerminalPreferencesDialog *dialog);
 #endif
-static void terminal_preferences_dialog_palette_changed   (GtkWidget                 *button,
+static void     terminal_preferences_dialog_palette_changed   (GtkWidget                 *button,
                                                            TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_palette_notify    (TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_presets_load      (TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_reset_compat      (GtkWidget                 *button,
-                                                           TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_reset_word_chars  (GtkWidget                 *button,
-                                                           TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_background_mode   (GtkWidget                 *combobox,
-                                                           TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_background_notify (GObject                   *object,
-                                                           GParamSpec                *pspec,
-                                                           GObject                   *widget);
-static void terminal_preferences_dialog_background_set    (GtkFileChooserButton      *widget,
-                                                           TerminalPreferencesDialog *dialog);
-static void terminal_preferences_dialog_encoding_changed  (GtkComboBox               *combobox,
-                                                           TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_palette_notify    (TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_presets_load      (TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_reset_compat      (GtkWidget                 *button,
+                                                               TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_reset_word_chars  (GtkWidget                 *button,
+                                                               TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_background_mode   (GtkWidget                 *combobox,
+                                                               TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_background_notify (GObject                   *object,
+                                                               GParamSpec                *pspec,
+                                                               GObject                   *widget);
+static void     terminal_preferences_dialog_background_set    (GtkFileChooserButton      *widget,
+                                                               TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_encoding_changed  (GtkComboBox               *combobox,
+                                                               TerminalPreferencesDialog *dialog);
 
 
 
@@ -211,7 +213,13 @@ error:
 
   /* bind color properties */
   for (i = 0; i < G_N_ELEMENTS (props_color); i++)
-    BIND_PROPERTIES (props_color[i], "rgba");
+    {
+      BIND_PROPERTIES (props_color[i], "rgba");
+
+      /* don't show palette */
+      g_signal_connect (G_OBJECT (object), "button-press-event",
+          G_CALLBACK (terminal_preferences_dialog_color_press_event), object);
+    }
 
   /* bind color properties */
   for (i = 0; i < G_N_ELEMENTS (props_value); i++)
@@ -432,6 +440,29 @@ terminal_preferences_dialog_disc_bindings (GtkWidget                 *widget,
   for (li = dialog->bindings; li != NULL; li = li->next)
     g_object_unref (G_OBJECT (li->data));
   g_slist_free (dialog->bindings);
+}
+
+
+
+static gboolean
+terminal_preferences_dialog_color_press_event (GtkWidget      *widget,
+                                               GdkEventButton *event)
+{
+#if GTK_CHECK_VERSION (3, 20, 0)
+  gboolean show_editor;
+
+  if (event->type == GDK_BUTTON_PRESS && event->button == 1 && event->state == GDK_CONTROL_MASK)
+    {
+      /* use Ctrl+click to open color editor directly */
+      g_object_get (G_OBJECT (widget), "show-editor", &show_editor, NULL);
+      g_object_set (G_OBJECT (widget), "show-editor", TRUE, NULL);
+      gtk_button_clicked (GTK_BUTTON (widget));
+      g_object_set (G_OBJECT (widget), "show-editor", show_editor, NULL);
+      return TRUE;
+    }
+#endif
+
+  return FALSE;
 }
 
 
