@@ -2040,7 +2040,7 @@ Opacity setting is not available.</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
-                            <property name="label" translatable="yes">Use Ctrl+click to edit colors directly.</property>
+                            <property name="label" translatable="yes">Note: Ctrl+click for color editor.</property>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
