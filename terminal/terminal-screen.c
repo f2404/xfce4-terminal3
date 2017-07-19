@@ -176,6 +176,7 @@ struct _TerminalScreen
 
   TerminalTitle        dynamic_title_mode;
   guint                hold : 1;
+  guint                scroll_on_output : 1;
 
   guint                activity_timeout_id;
   time_t               activity_resize_time;
@@ -850,8 +851,8 @@ terminal_screen_update_background (TerminalScreen *screen)
   TerminalBackground background_mode;
   gdouble            background_alpha;
 
-  terminal_return_val_if_fail (TERMINAL_IS_SCREEN (screen), FALSE);
-  terminal_return_val_if_fail (VTE_IS_TERMINAL (screen->terminal), FALSE);
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
 
   g_object_get (G_OBJECT (screen->preferences), "background-mode", &background_mode, NULL);
 
@@ -1051,7 +1052,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
   /* cursor color */
   if (!cursor_use_default)
     {
-      cursor_use_default = !terminal_preferences_get_color (screen->preferences, "color-cursor-fg", &cursor);
+      cursor_use_default = !terminal_preferences_get_color (screen->preferences, "color-cursor-foreground", &cursor);
 #if VTE_CHECK_VERSION (0, 44, 0)
       vte_terminal_set_color_cursor_foreground (VTE_TERMINAL (screen->terminal), cursor_use_default ? NULL : &cursor);
 #endif
@@ -1064,7 +1065,7 @@ terminal_screen_update_colors (TerminalScreen *screen)
     {
       selection_use_default = !terminal_preferences_get_color (screen->preferences, "color-selection", &selection);
       vte_terminal_set_color_highlight_foreground (VTE_TERMINAL (screen->terminal), selection_use_default ? NULL : &selection);
-      selection_use_default = !terminal_preferences_get_color (screen->preferences, "color-selection-bg", &selection);
+      selection_use_default = !terminal_preferences_get_color (screen->preferences, "color-selection-background", &selection);
       vte_terminal_set_color_highlight (VTE_TERMINAL (screen->terminal), selection_use_default ? NULL : &selection);
     }
 
@@ -1166,6 +1167,7 @@ terminal_screen_update_scrolling_on_output (TerminalScreen *screen)
 {
   gboolean scroll;
   g_object_get (G_OBJECT (screen->preferences), "scrolling-on-output", &scroll, NULL);
+  screen->scroll_on_output = scroll;
   vte_terminal_set_scroll_on_output (VTE_TERMINAL (screen->terminal), scroll);
 }
 
@@ -1787,8 +1789,8 @@ terminal_screen_set_window_geometry_hints (TerminalScreen *screen,
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
-  terminal_return_if_fail (gtk_widget_get_realized (screen));
-  terminal_return_if_fail (gtk_widget_get_realized (window));
+  terminal_return_if_fail (gtk_widget_get_realized (GTK_WIDGET (screen)));
+  terminal_return_if_fail (gtk_widget_get_realized (GTK_WIDGET (window)));
 
 #if GTK_CHECK_VERSION (3, 19, 5)
   terminal_screen_get_geometry (screen, &char_width, &char_height, NULL, NULL);
@@ -2416,14 +2418,15 @@ terminal_screen_update_font (TerminalScreen *screen)
 
   if (TERMINAL_IS_WINDOW (toplevel))
     {
-      if (TERMINAL_WINDOW (toplevel)->font)
+      if (terminal_window_get_font (TERMINAL_WINDOW (toplevel)))
         {
           g_free (font_name);
-          font_name = g_strdup (TERMINAL_WINDOW (toplevel)->font);
+          font_name = g_strdup (terminal_window_get_font (TERMINAL_WINDOW (toplevel)));
         }
 
-      if (TERMINAL_WINDOW (toplevel)->zoom != TERMINAL_ZOOM_LEVEL_DEFAULT)
-        font_name = terminal_screen_zoom_font (screen, font_name, TERMINAL_WINDOW (toplevel)->zoom);
+      if (terminal_window_get_zoom_level (TERMINAL_WINDOW (toplevel)) != TERMINAL_ZOOM_LEVEL_DEFAULT)
+        font_name = terminal_screen_zoom_font (screen, font_name,
+                                               terminal_window_get_zoom_level (TERMINAL_WINDOW (toplevel)));
     }
 
   if (gtk_widget_get_realized (GTK_WIDGET (screen)))
@@ -2448,7 +2451,7 @@ terminal_screen_update_font (TerminalScreen *screen)
 gboolean
 terminal_screen_get_input_enabled (TerminalScreen *screen)
 {
-  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  terminal_return_val_if_fail (TERMINAL_IS_SCREEN (screen), FALSE);
   return vte_terminal_get_input_enabled (VTE_TERMINAL (screen->terminal));
 }
 
@@ -2464,11 +2467,21 @@ terminal_screen_set_input_enabled (TerminalScreen *screen,
 
 
 
+gboolean
+terminal_screen_get_scroll_on_output (TerminalScreen *screen)
+{
+  terminal_return_val_if_fail (TERMINAL_IS_SCREEN (screen), FALSE);
+  return screen->scroll_on_output;
+}
+
+
+
 void
 terminal_screen_set_scroll_on_output (TerminalScreen *screen,
                                       gboolean        enabled)
 {
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  screen->scroll_on_output = enabled;
   vte_terminal_set_scroll_on_output (VTE_TERMINAL (screen->terminal), enabled);
 }
 
