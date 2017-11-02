@@ -41,6 +41,8 @@
 #include <utempter.h>
 #endif
 
+#include <sys/wait.h>
+
 #include <libxfce4ui/libxfce4ui.h>
 
 #include <terminal/terminal-util.h>
@@ -831,6 +833,14 @@ terminal_screen_get_child_environment (TerminalScreen *screen)
           || strcmp (*p, "DISPLAY") == 0
           || strcmp (*p, "TERM") == 0)
         continue;
+
+      /* copy working directory to $PWD, to preserve symlinks
+       * see https://bugzilla.gnome.org/show_bug.cgi?id=758452 */
+      if (strcmp (*p, "PWD") == 0)
+        {
+          result[n++] = g_strconcat (*p, "=", screen->working_directory, NULL);
+          continue;
+        }
 
       /* copy the variable */
       value = g_getenv (*p);
@@ -1659,6 +1669,9 @@ terminal_screen_launch_child (TerminalScreen *screen)
   guint         i;
   VtePtyFlags   pty_flags = VTE_PTY_DEFAULT;
   GSpawnFlags   spawn_flags = G_SPAWN_CHILD_INHERITS_STDIN | G_SPAWN_SEARCH_PATH;
+#ifdef HAVE_LIBUTEMPTER
+  gboolean      update_records;
+#endif
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
 
@@ -1702,7 +1715,9 @@ terminal_screen_launch_child (TerminalScreen *screen)
         }
 
 #ifdef HAVE_LIBUTEMPTER
-      utempter_add_record (vte_pty_get_fd (vte_terminal_get_pty (VTE_TERMINAL (screen->terminal))), NULL);
+      g_object_get (G_OBJECT (screen->preferences), "command-update-records", &update_records, NULL);
+      if (update_records)
+        utempter_add_record (vte_pty_get_fd (vte_terminal_get_pty (VTE_TERMINAL (screen->terminal))), NULL);
 #endif
 
       g_free (argv2);
@@ -2034,14 +2049,22 @@ terminal_screen_get_title (TerminalScreen *screen)
 const gchar*
 terminal_screen_get_working_directory (TerminalScreen *screen)
 {
-  gchar  buffer[4096 + 1];
-  gchar *file;
-  gchar *cwd;
-  gint   length;
+  gchar        buffer[4096 + 1];
+  gchar       *file;
+  gchar       *cwd;
+  const gchar *uri;
+  gint         length;
 
   terminal_return_val_if_fail (TERMINAL_IS_SCREEN (screen), NULL);
 
-  if (screen->pid >= 0)
+  /* try to use vte functionality first: see bug #13902 */
+  uri = vte_terminal_get_current_directory_uri (VTE_TERMINAL (screen->terminal));
+  if (uri != NULL)
+    {
+      g_free (screen->working_directory);
+      screen->working_directory = g_filename_from_uri (uri, NULL, NULL);
+    }
+  else if (screen->pid >= 0)
     {
       /* make sure that we use linprocfs on all systems */
 #if defined(__FreeBSD__)
@@ -2282,7 +2305,7 @@ terminal_screen_reset_activity (TerminalScreen *screen)
 
 
 static void
-close_tab_cb (TerminalScreen *screen)
+terminal_screen_close_tab_cb (TerminalScreen *screen)
 {
   g_signal_emit (G_OBJECT (screen), screen_signals[CLOSE_TAB], 0);
 }
@@ -2325,7 +2348,7 @@ terminal_screen_get_tab_label (TerminalScreen *screen)
   gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
   gtk_container_add (GTK_CONTAINER (hbox), button);
   g_signal_connect_swapped (G_OBJECT (button), "clicked",
-                            G_CALLBACK (close_tab_cb), screen);
+                            G_CALLBACK (terminal_screen_close_tab_cb), screen);
 
   /* button image */
   image = gtk_image_new_from_icon_name ("window-close-symbolic", GTK_ICON_SIZE_MENU);

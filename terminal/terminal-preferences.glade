@@ -417,6 +417,23 @@
                               </packing>
                             </child>
                             <child>
+                              <object class="GtkCheckButton" id="command-update-records">
+                                <property name="label" translatable="yes">_Update utmp/wtmp records when command is launched</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">False</property>
+                                <property name="tooltip_text" translatable="yes">Select this option to allow commands that use utmp/wtmp records (such as `write` or `wall`) to work.</property>
+                                <property name="halign">start</property>
+                                <property name="use_underline">True</property>
+                                <property name="draw_indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkCheckButton" id="run-custom-command">
                                 <property name="label" translatable="yes">Run a _custom command instead of my shell</property>
                                 <property name="visible">True</property>
@@ -430,7 +447,7 @@
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -471,7 +488,7 @@
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">2</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                             <child>
@@ -515,7 +532,7 @@
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">3</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                           </object>
@@ -1901,29 +1918,71 @@ Opacity setting is not available.</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkFrame" id="frame14">
+                  <object class="GtkFrame" id="frame20">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">none</property>
                     <child>
-                      <object class="GtkAlignment" id="alignment17">
+                      <object class="GtkAlignment" id="alignment1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkBox" id="hbox4">
+                          <object class="GtkBox" id="vbox9">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="border_width">6</property>
-                            <property name="spacing">12</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">6</property>
                             <child>
-                              <object class="GtkLabel" id="label28">
+                              <object class="GtkBox" id="hbox4">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Reset tab activity _indicator after</property>
-                                <property name="use_underline">True</property>
-                                <property name="mnemonic_widget">spinbutton2</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkLabel" id="label28">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">Reset tab activity _indicator after</property>
+                                    <property name="use_underline">True</property>
+                                    <property name="mnemonic_widget">spinbutton2</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spinbutton2">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="invisible_char">•</property>
+                                    <property name="primary_icon_activatable">False</property>
+                                    <property name="secondary_icon_activatable">False</property>
+                                    <property name="adjustment">tab-activity-timeout</property>
+                                    <property name="numeric">True</property>
+                                    <property name="update_policy">if-valid</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label29">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">seconds</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">False</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1932,32 +1991,19 @@ Opacity setting is not available.</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinbutton2">
+                              <object class="GtkCheckButton" id="misc-slim-tabs">
+                                <property name="label" translatable="yes">Use custom styling to make tabs _slim (restart required)</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="invisible_char">•</property>
-                                <property name="primary_icon_activatable">False</property>
-                                <property name="secondary_icon_activatable">False</property>
-                                <property name="adjustment">tab-activity-timeout</property>
-                                <property name="numeric">True</property>
-                                <property name="update_policy">if-valid</property>
+                                <property name="receives_default">False</property>
+                                <property name="halign">start</property>
+                                <property name="use_underline">True</property>
+                                <property name="draw_indicator">True</property>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
+                                <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label29">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">seconds</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">2</property>
                               </packing>
                             </child>
                           </object>
@@ -1965,10 +2011,10 @@ Opacity setting is not available.</property>
                       </object>
                     </child>
                     <child type="label">
-                      <object class="GtkLabel" id="label27">
+                      <object class="GtkLabel" id="label61">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Tab Activity Indicator</property>
+                        <property name="label" translatable="yes">Tabs</property>
                         <property name="use_markup">True</property>
                         <attributes>
                           <attribute name="weight" value="bold"/>
@@ -3356,11 +3402,12 @@ when double clicking:</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkCheckButton" id="misc-slim-tabs">
-                                <property name="label" translatable="yes">Use custom styling to make tabs _slim (restart required)</property>
+                              <object class="GtkCheckButton" id="misc-new-tab-adjacent">
+                                <property name="label" translatable="yes">Open new tab to the _right of the active tab</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
+                                <property name="tooltip_text" translatable="yes">If disabled, new tab will be opened in the rightmost position.</property>
                                 <property name="halign">start</property>
                                 <property name="use_underline">True</property>
                                 <property name="draw_indicator">True</property>
@@ -3372,11 +3419,12 @@ when double clicking:</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkCheckButton" id="misc-new-tab-adjacent">
-                                <property name="label" translatable="yes">Open new tab to the _right of the active tab</property>
+                              <object class="GtkCheckButton" id="misc-bell">
+                                <property name="label" translatable="yes">_Audible bell</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
+                                <property name="tooltip_text" translatable="yes">Allows the terminal to play sound to indicate some events.</property>
                                 <property name="halign">start</property>
                                 <property name="use_underline">True</property>
                                 <property name="draw_indicator">True</property>
@@ -3385,6 +3433,23 @@ when double clicking:</property>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">5</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="misc-bell-urgent">
+                                <property name="label" translatable="yes">_Visual bell</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">False</property>
+                                <property name="tooltip_text" translatable="yes">Allows the terminal to use WM's capability of urgent hint to indicate some events.</property>
+                                <property name="halign">start</property>
+                                <property name="use_underline">True</property>
+                                <property name="draw_indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">6</property>
                               </packing>
                             </child>
                           </object>
