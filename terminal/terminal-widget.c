@@ -657,7 +657,7 @@ terminal_widget_open_uri (TerminalWidget *widget,
 {
   GtkWindow *window = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (widget)));
   GError    *error = NULL;
-  gchar     *uri, *escaped;
+  gchar     *uri;
   guint      i;
 
   for (i = 0; i < G_N_ELEMENTS (regex_patterns); i++)
@@ -678,8 +678,8 @@ terminal_widget_open_uri (TerminalWidget *widget,
             break;
 
           case PATTERN_TYPE_EMAIL:
-            uri = g_str_has_prefix (wlink, MAILTO "//")
-                ? g_strdup (wlink) : g_strconcat (MAILTO "//", wlink, NULL);
+            uri = strncmp (wlink, MAILTO, strlen (MAILTO)) == 0
+                ? g_strdup (wlink) : g_strconcat (MAILTO, wlink, NULL);
             break;
 
           default:
@@ -695,11 +695,8 @@ terminal_widget_open_uri (TerminalWidget *widget,
                          uri, gtk_get_current_event_time (), &error))
 #endif
         {
-          /* escape ampersand symbols, etc. */
-          escaped = g_markup_escape_text (uri, -1);
           /* tell the user that we were unable to open the responsible application */
-          xfce_dialog_show_error (window, error, _("Failed to open the URL '%s'"), escaped);
-          g_free (escaped);
+          xfce_dialog_show_error (window, error, _("Failed to open the URL '%s'"), uri);
           g_error_free (error);
         }
 
