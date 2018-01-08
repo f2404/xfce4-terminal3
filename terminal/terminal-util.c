@@ -81,14 +81,14 @@ terminal_util_show_about_dialog (GtkWindow *parent)
                          "documenters", documenters,
                          "copyright", "Copyright \302\251 2003-2008 Benedikt Meurer\n"
                                       "Copyright \302\251 2007-2012 Nick Schermer\n"
-                                      "Copyright \302\251 2016-2017 Igor Zakharov",
+                                      "Copyright \302\251 2016-2018 Igor Zakharov",
                          "license", XFCE_LICENSE_GPL,
                          "logo-icon-name", "utilities-terminal",
                          "program-name", PACKAGE_NAME,
                          "translator-credits", _("translator-credits"),
                          "version", PACKAGE_VERSION,
                          "website", "http://docs.xfce.org/apps/terminal/start",
-                         "website-label", _("Visit Terminal website"),
+                         "website-label", _("Visit Xfce Terminal website"),
                          NULL);
 }
 
