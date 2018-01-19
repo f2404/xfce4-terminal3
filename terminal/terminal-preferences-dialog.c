@@ -952,10 +952,23 @@ static void
 terminal_preferences_dialog_reset_cell_sp (GtkWidget                 *button,
                                            TerminalPreferencesDialog *dialog)
 {
-  g_object_set (G_OBJECT (dialog->preferences),
-                "cell-spacing-width", TERMINAL_CELL_SPACING_DEFAULT,
-                "cell-spacing-height", TERMINAL_CELL_SPACING_DEFAULT,
-                NULL);
+  GParamSpec  *spec;
+  GValue       value = { 0, };
+  const gchar *properties[] = { "cell-spacing-width", "cell-spacing-height" };
+  guint        i;
+
+  for (i = 0; i < G_N_ELEMENTS (properties); i++)
+    {
+      spec = g_object_class_find_property (G_OBJECT_GET_CLASS (dialog->preferences),
+                                           properties[i]);
+      if (G_LIKELY (spec != NULL))
+        {
+          g_value_init (&value, spec->value_type);
+          g_param_value_set_default (spec, &value);
+          g_object_set_property (G_OBJECT (dialog->preferences), properties[i], &value);
+          g_value_unset (&value);
+        }
+    }
 }
 #endif
 

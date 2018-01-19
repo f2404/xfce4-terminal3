@@ -95,10 +95,6 @@ typedef enum /*< enum,prefix=TERMINAL_TEXT_BLINK_MODE >*/
   TERMINAL_TEXT_BLINK_MODE_ALWAYS
 } TerminalTextBlinkMode;
 
-#define TERMINAL_CELL_SPACING_MIN     1.0
-#define TERMINAL_CELL_SPACING_MAX     2.0
-#define TERMINAL_CELL_SPACING_DEFAULT TERMINAL_CELL_SPACING_MIN
-
 GType                terminal_preferences_get_type  (void) G_GNUC_CONST;
 
 TerminalPreferences *terminal_preferences_get       (void);

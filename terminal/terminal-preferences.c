@@ -302,7 +302,7 @@ terminal_preferences_class_init (TerminalPreferencesClass *klass)
   if (!g_value_type_transformable (G_TYPE_STRING, G_TYPE_UINT))
     g_value_register_transform_func (G_TYPE_STRING, G_TYPE_UINT, transform_string_to_uint);
   /* enum types */
-  for (i = 0; i < sizeof(enum_types) / sizeof (GType); ++i)
+  for (i = 0; i < G_N_ELEMENTS (enum_types); ++i)
     if (!g_value_type_transformable (G_TYPE_STRING, enum_types[i]))
       g_value_register_transform_func (G_TYPE_STRING, enum_types[i], transform_string_to_enum);
 
@@ -1170,9 +1170,7 @@ terminal_preferences_class_init (TerminalPreferencesClass *klass)
       g_param_spec_double ("cell-spacing-width",
                            NULL,
                            "CellSpacingWidth",
-                           TERMINAL_CELL_SPACING_MIN,
-                           TERMINAL_CELL_SPACING_MAX,
-                           TERMINAL_CELL_SPACING_DEFAULT,
+                           1.0, 2.0, 1.0,
                            G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /**
@@ -1182,9 +1180,7 @@ terminal_preferences_class_init (TerminalPreferencesClass *klass)
       g_param_spec_double ("cell-spacing-height",
                            NULL,
                            "CellSpacingHeight",
-                           TERMINAL_CELL_SPACING_MIN,
-                           TERMINAL_CELL_SPACING_MAX,
-                           TERMINAL_CELL_SPACING_DEFAULT,
+                           1.0, 2.0, 1.0,
                            G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /* install all properties */
