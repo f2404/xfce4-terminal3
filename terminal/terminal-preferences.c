@@ -125,6 +125,8 @@ enum
   PROP_TAB_ACTIVITY_COLOR,
   PROP_TAB_ACTIVITY_TIMEOUT,
   PROP_TEXT_BLINK_MODE,
+  PROP_CELL_SPACING_WIDTH,
+  PROP_CELL_SPACING_HEIGHT,
   N_PROPERTIES,
 };
 
@@ -1160,6 +1162,30 @@ terminal_preferences_class_init (TerminalPreferencesClass *klass)
                          TERMINAL_TYPE_TEXT_BLINK_MODE,
                          TERMINAL_TEXT_BLINK_MODE_ALWAYS,
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * TerminalPreferences:cell-spacing-width:
+   **/
+  preferences_props[PROP_CELL_SPACING_WIDTH] =
+      g_param_spec_double ("cell-spacing-width",
+                           NULL,
+                           "CellSpacingWidth",
+                           TERMINAL_CELL_SPACING_MIN,
+                           TERMINAL_CELL_SPACING_MAX,
+                           TERMINAL_CELL_SPACING_DEFAULT,
+                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * TerminalPreferences:cell-spacing-height:
+   **/
+  preferences_props[PROP_CELL_SPACING_HEIGHT] =
+      g_param_spec_double ("cell-spacing-height",
+                           NULL,
+                           "CellSpacingHeight",
+                           TERMINAL_CELL_SPACING_MIN,
+                           TERMINAL_CELL_SPACING_MAX,
+                           TERMINAL_CELL_SPACING_DEFAULT,
+                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /* install all properties */
   g_object_class_install_properties (gobject_class, N_PROPERTIES, preferences_props);

@@ -116,6 +116,9 @@ static void       terminal_screen_update_binding_backspace      (TerminalScreen 
 static void       terminal_screen_update_binding_delete         (TerminalScreen        *screen);
 static void       terminal_screen_update_binding_ambiguous_width(TerminalScreen        *screen);
 static void       terminal_screen_update_encoding               (TerminalScreen        *screen);
+#if VTE_CHECK_VERSION (0, 51, 3)
+static void       terminal_screen_update_cell_spacing           (TerminalScreen        *screen);
+#endif
 static void       terminal_screen_update_colors                 (TerminalScreen        *screen);
 static void       terminal_screen_update_misc_bell              (TerminalScreen        *screen);
 static void       terminal_screen_update_misc_cursor_blinks     (TerminalScreen        *screen);
@@ -325,6 +328,9 @@ terminal_screen_init (TerminalScreen *screen)
   terminal_screen_update_scrolling_lines (screen);
   terminal_screen_update_scrolling_on_output (screen);
   terminal_screen_update_scrolling_on_keystroke (screen);
+#if VTE_CHECK_VERSION (0, 51, 3)
+  terminal_screen_update_cell_spacing (screen);
+#endif
   terminal_screen_update_text_blink_mode (screen);
   terminal_screen_update_word_chars (screen);
   terminal_screen_update_background (screen);
@@ -579,6 +585,10 @@ terminal_screen_preferences_changed (TerminalPreferences *preferences,
     terminal_screen_update_binding_delete (screen);
   else if (strcmp ("binding-ambiguous-width", name) == 0)
     terminal_screen_update_binding_ambiguous_width (screen);
+#if VTE_CHECK_VERSION (0, 51, 3)
+  else if (strncmp ("cell-spacing-", name, strlen ("cell-spacing-")) == 0)
+    terminal_screen_update_cell_spacing (screen);
+#endif
   else if (strncmp ("color-", name, strlen ("color-")) == 0)
     terminal_screen_update_colors (screen);
   else if (strncmp ("font-", name, strlen ("font-")) == 0)
@@ -977,6 +987,25 @@ terminal_screen_update_encoding (TerminalScreen *screen)
   g_free (encoding);
 }
 
+
+
+#if VTE_CHECK_VERSION (0, 51, 3)
+static void
+terminal_screen_update_cell_spacing (TerminalScreen *screen)
+{
+  gdouble cell_spacing_width, cell_spacing_height;
+
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
+
+  g_object_get (G_OBJECT (screen->preferences),
+                "cell-spacing-width", &cell_spacing_width,
+                "cell-spacing-height", &cell_spacing_height,
+                NULL);
+
+  printf("%f %f\n", cell_spacing_width, cell_spacing_height);
+}
+#endif
 
 
 static void

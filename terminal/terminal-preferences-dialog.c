@@ -55,6 +55,10 @@ static void     terminal_preferences_dialog_palette_changed   (GtkWidget        
                                                                TerminalPreferencesDialog *dialog);
 static void     terminal_preferences_dialog_palette_notify    (TerminalPreferencesDialog *dialog);
 static void     terminal_preferences_dialog_presets_load      (TerminalPreferencesDialog *dialog);
+#if VTE_CHECK_VERSION (0, 51, 3)
+static void     terminal_preferences_dialog_reset_cell_sp     (GtkWidget                 *button,
+                                                               TerminalPreferencesDialog *dialog);
+#endif
 static void     terminal_preferences_dialog_reset_compat      (GtkWidget                 *button,
                                                                TerminalPreferencesDialog *dialog);
 static void     terminal_preferences_dialog_reset_word_chars  (GtkWidget                 *button,
@@ -269,6 +273,30 @@ error:
 #endif
 
 #if VTE_CHECK_VERSION (0, 51, 3)
+  /* bind cell spacing width */
+  object = gtk_builder_get_object (GTK_BUILDER (dialog), "spin-cell-sp-width");
+  object2 = G_OBJECT (gtk_spin_button_get_adjustment (GTK_SPIN_BUTTON (object)));
+  terminal_return_if_fail (G_IS_OBJECT (object) && G_IS_OBJECT (object2));
+  binding = g_object_bind_property (G_OBJECT (dialog->preferences), "cell-spacing-width",
+                                    G_OBJECT (object2), "value",
+                                    G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
+  dialog->bindings = g_slist_prepend (dialog->bindings, binding);
+
+  /* bind cell spacing height */
+  object = gtk_builder_get_object (GTK_BUILDER (dialog), "spin-cell-sp-height");
+  object2 = G_OBJECT (gtk_spin_button_get_adjustment (GTK_SPIN_BUTTON (object)));
+  terminal_return_if_fail (G_IS_OBJECT (object) && G_IS_OBJECT (object2));
+  binding = g_object_bind_property (G_OBJECT (dialog->preferences), "cell-spacing-height",
+                                    G_OBJECT (object2), "value",
+                                    G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
+  dialog->bindings = g_slist_prepend (dialog->bindings, binding);
+
+  /* cell spacing "Reset" button */
+  object = gtk_builder_get_object (GTK_BUILDER (dialog), "reset-cell-sp");
+  terminal_return_if_fail (G_IS_OBJECT (object));
+  g_signal_connect (object, "clicked",
+                    G_CALLBACK (terminal_preferences_dialog_reset_cell_sp), dialog);
+
   /* hide "Allow bold" if vte supports "bold is bright" */
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "font-allow-bold");
   terminal_return_if_fail (G_IS_OBJECT (object));
@@ -276,6 +304,11 @@ error:
 #else
   /* hide "Text blinks" if vte doesn't support it */
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "box-text-blink");
+  terminal_return_if_fail (G_IS_OBJECT (object));
+  gtk_widget_hide (GTK_WIDGET (object));
+
+  /* hide "Cell spacing" if vte doesn't support it */
+  object = gtk_builder_get_object (GTK_BUILDER (dialog), "cell-sp-box");
   terminal_return_if_fail (G_IS_OBJECT (object));
   gtk_widget_hide (GTK_WIDGET (object));
 
@@ -398,7 +431,7 @@ error:
   /* hide */
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "geo-box");
   terminal_return_if_fail (G_IS_OBJECT (object));
-  gtk_widget_hide (GTK_BOX (object));
+  gtk_widget_hide (GTK_WIDGET (object));
 #endif
 
   /* background widgets visibility */
@@ -911,6 +944,20 @@ terminal_preferences_dialog_presets_load (TerminalPreferencesDialog *dialog)
       gtk_widget_hide (GTK_WIDGET (object));
     }
 }
+
+
+
+#if VTE_CHECK_VERSION (0, 51, 3)
+static void
+terminal_preferences_dialog_reset_cell_sp (GtkWidget                 *button,
+                                           TerminalPreferencesDialog *dialog)
+{
+  g_object_set (G_OBJECT (dialog->preferences),
+                "cell-spacing-width", TERMINAL_CELL_SPACING_DEFAULT,
+                "cell-spacing-height", TERMINAL_CELL_SPACING_DEFAULT,
+                NULL);
+}
+#endif
 
 
 
