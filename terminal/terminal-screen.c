@@ -116,9 +116,6 @@ static void       terminal_screen_update_binding_backspace      (TerminalScreen 
 static void       terminal_screen_update_binding_delete         (TerminalScreen        *screen);
 static void       terminal_screen_update_binding_ambiguous_width(TerminalScreen        *screen);
 static void       terminal_screen_update_encoding               (TerminalScreen        *screen);
-#if VTE_CHECK_VERSION (0, 51, 3)
-static void       terminal_screen_update_cell_spacing           (TerminalScreen        *screen);
-#endif
 static void       terminal_screen_update_colors                 (TerminalScreen        *screen);
 static void       terminal_screen_update_misc_bell              (TerminalScreen        *screen);
 static void       terminal_screen_update_misc_cursor_blinks     (TerminalScreen        *screen);
@@ -328,9 +325,6 @@ terminal_screen_init (TerminalScreen *screen)
   terminal_screen_update_scrolling_lines (screen);
   terminal_screen_update_scrolling_on_output (screen);
   terminal_screen_update_scrolling_on_keystroke (screen);
-#if VTE_CHECK_VERSION (0, 51, 3)
-  terminal_screen_update_cell_spacing (screen);
-#endif
   terminal_screen_update_text_blink_mode (screen);
   terminal_screen_update_word_chars (screen);
   terminal_screen_update_background (screen);
@@ -586,8 +580,8 @@ terminal_screen_preferences_changed (TerminalPreferences *preferences,
   else if (strcmp ("binding-ambiguous-width", name) == 0)
     terminal_screen_update_binding_ambiguous_width (screen);
 #if VTE_CHECK_VERSION (0, 51, 3)
-  else if (strncmp ("cell-spacing-", name, strlen ("cell-spacing-")) == 0)
-    terminal_screen_update_cell_spacing (screen);
+  else if (strcmp ("cell-width-scale", name) == 0 || strcmp ("cell-height-scale", name) == 0)
+    terminal_screen_update_font (screen);
 #endif
   else if (strncmp ("color-", name, strlen ("color-")) == 0)
     terminal_screen_update_colors (screen);
@@ -987,25 +981,6 @@ terminal_screen_update_encoding (TerminalScreen *screen)
   g_free (encoding);
 }
 
-
-
-#if VTE_CHECK_VERSION (0, 51, 3)
-static void
-terminal_screen_update_cell_spacing (TerminalScreen *screen)
-{
-  gdouble cell_spacing_width, cell_spacing_height;
-
-  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
-  terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
-
-  g_object_get (G_OBJECT (screen->preferences),
-                "cell-spacing-width", &cell_spacing_width,
-                "cell-spacing-height", &cell_spacing_height,
-                NULL);
-
-  printf("%f %f\n", cell_spacing_width, cell_spacing_height);
-}
-#endif
 
 
 static void
@@ -2579,6 +2554,9 @@ terminal_screen_update_font (TerminalScreen *screen)
   PangoFontDescription *font_desc;
   glong                 grid_w = 0, grid_h = 0;
   GSettings            *settings;
+#if VTE_CHECK_VERSION (0, 51, 3)
+  gdouble cell_width_scale, cell_height_scale;
+#endif
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
   terminal_return_if_fail (TERMINAL_IS_PREFERENCES (screen->preferences));
@@ -2625,6 +2603,16 @@ terminal_screen_update_font (TerminalScreen *screen)
       pango_font_description_free (font_desc);
       g_free (font_name);
     }
+
+#if VTE_CHECK_VERSION (0, 51, 3)
+  g_object_get (G_OBJECT (screen->preferences),
+                "cell-width-scale", &cell_width_scale,
+                "cell-height-scale", &cell_height_scale,
+                NULL);
+
+  vte_terminal_set_cell_width_scale (VTE_TERMINAL (screen->terminal), cell_width_scale);
+  vte_terminal_set_cell_height_scale (VTE_TERMINAL (screen->terminal), cell_height_scale);
+#endif
 
   /* update window geometry it required (not needed for drop-down) */
   if (TERMINAL_IS_WINDOW (toplevel) && !TERMINAL_WINDOW (toplevel)->drop_down && grid_w > 0 && grid_h > 0)

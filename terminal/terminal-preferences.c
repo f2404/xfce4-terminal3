@@ -125,8 +125,8 @@ enum
   PROP_TAB_ACTIVITY_COLOR,
   PROP_TAB_ACTIVITY_TIMEOUT,
   PROP_TEXT_BLINK_MODE,
-  PROP_CELL_SPACING_WIDTH,
-  PROP_CELL_SPACING_HEIGHT,
+  PROP_CELL_WIDTH_SCALE,
+  PROP_CELL_HEIGHT_SCALE,
   N_PROPERTIES,
 };
 
@@ -1164,22 +1164,22 @@ terminal_preferences_class_init (TerminalPreferencesClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /**
-   * TerminalPreferences:cell-spacing-width:
+   * TerminalPreferences:cell-width-scale:
    **/
-  preferences_props[PROP_CELL_SPACING_WIDTH] =
-      g_param_spec_double ("cell-spacing-width",
+  preferences_props[PROP_CELL_WIDTH_SCALE] =
+      g_param_spec_double ("cell-width-scale",
                            NULL,
-                           "CellSpacingWidth",
+                           "CellWidthScale",
                            1.0, 2.0, 1.0,
                            G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /**
-   * TerminalPreferences:cell-spacing-height:
+   * TerminalPreferences:cell-height-scale:
    **/
-  preferences_props[PROP_CELL_SPACING_HEIGHT] =
-      g_param_spec_double ("cell-spacing-height",
+  preferences_props[PROP_CELL_HEIGHT_SCALE] =
+      g_param_spec_double ("cell-height-scale",
                            NULL,
-                           "CellSpacingHeight",
+                           "CellHeightScale",
                            1.0, 2.0, 1.0,
                            G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
