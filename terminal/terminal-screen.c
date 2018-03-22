@@ -61,6 +61,10 @@
 /* offset of saturation random value */
 #define SATURATION_WINDOW 0.20
 
+/* taken from gnome-terminal (terminal-screen.c) */
+#define SPAWN_TIMEOUT (30 * 1000 /* 30 s*/)
+
+
 
 enum
 {
@@ -282,6 +286,7 @@ terminal_screen_init (TerminalScreen *screen)
   screen->working_directory = g_get_current_dir ();
   screen->dynamic_title_mode = TERMINAL_TITLE_DEFAULT;
   screen->session_id = ++screen_last_session_id;
+  screen->pid = -1;
 
   screen->terminal = g_object_new (TERMINAL_TYPE_WIDGET, NULL);
   g_signal_connect (G_OBJECT (screen->terminal), "child-exited",
@@ -1673,6 +1678,28 @@ terminal_screen_set_custom_command (TerminalScreen *screen,
 
 
 
+#if VTE_CHECK_VERSION (0, 48, 0)
+static void
+terminal_screen_spawn_async_cb (VteTerminal *terminal,
+                                GPid         pid,
+                                GError      *error,
+                                gpointer     user_data)
+{
+  TerminalScreen *screen = TERMINAL_SCREEN (user_data);
+
+  terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
+  terminal_return_if_fail (VTE_IS_TERMINAL (screen->terminal));
+
+  screen->pid = pid;
+
+  if (error)
+    xfce_dialog_show_error (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (screen))),
+                            error, _("Failed to execute child"));
+}
+#endif
+
+
+
 /**
  * terminal_screen_new:
  * @attr    : Terminal attributes.
@@ -1755,17 +1782,29 @@ terminal_screen_launch_child (TerminalScreen *screen)
           spawn_flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
         }
 
+#if VTE_CHECK_VERSION (0, 48, 0)
+      vte_terminal_spawn_async (VTE_TERMINAL (screen->terminal),
+                                pty_flags,
+                                screen->working_directory, argv2, env,
+                                spawn_flags,
+                                NULL, NULL,
+                                NULL, SPAWN_TIMEOUT,
+                                NULL,
+                                terminal_screen_spawn_async_cb,
+                                screen);
+#else
       if (!vte_terminal_spawn_sync (VTE_TERMINAL (screen->terminal),
-                                           pty_flags,
-                                           screen->working_directory, argv2, env,
-                                           spawn_flags,
-                                           NULL, NULL,
-                                           &screen->pid, NULL, &error))
+                                    pty_flags,
+                                    screen->working_directory, argv2, env,
+                                    spawn_flags,
+                                    NULL, NULL,
+                                    &screen->pid, NULL, &error))
         {
           xfce_dialog_show_error (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (screen))),
                                   error, _("Failed to execute child"));
           g_error_free (error);
         }
+#endif
 
 #ifdef HAVE_LIBUTEMPTER
       g_object_get (G_OBJECT (screen->preferences), "command-update-records", &update_records, NULL);
@@ -2597,10 +2636,7 @@ terminal_screen_update_font (TerminalScreen *screen)
   if (G_LIKELY (font_name != NULL))
     {
       font_desc = pango_font_description_from_string (font_name);
-#if !VTE_CHECK_VERSION (0, 51, 3)
-      /* "bold-is-bright" is used since vte 0.51.3 */
       vte_terminal_set_allow_bold (VTE_TERMINAL (screen->terminal), font_allow_bold);
-#endif
       vte_terminal_set_font (VTE_TERMINAL (screen->terminal), font_desc);
       pango_font_description_free (font_desc);
       g_free (font_name);
@@ -2693,7 +2729,7 @@ terminal_screen_has_foreground_process (TerminalScreen *screen)
   int     fd;
   int     fgpid;
 
-  if (screen == NULL)
+  if (screen == NULL || screen->pid == -1)
     return FALSE;
 
   pty = vte_terminal_get_pty (VTE_TERMINAL (screen->terminal));

@@ -10,8 +10,8 @@ dnl *** Version information ***
 dnl ***************************
 m4_define([terminal_version_major], [0])
 m4_define([terminal_version_minor], [8])
-m4_define([terminal_version_micro], [6])
-m4_define([terminal_version_nano], [])
+m4_define([terminal_version_micro], [7])
+m4_define([terminal_version_nano], [2])
 m4_define([terminal_version_build], [@REVISION@])
 m4_define([terminal_version_tag], [git])
 m4_define([terminal_version_dbus], [5])
