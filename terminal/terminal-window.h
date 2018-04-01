@@ -108,6 +108,10 @@ void               terminal_window_rebuild_tabs_menu        (TerminalWindow     
 void               terminal_window_action_show_menubar      (GtkToggleAction    *action,
                                                              TerminalWindow     *window);
 
+void               terminal_window_show_relaunch_bar        (TerminalWindow     *window,
+                                                             TerminalScreen     *screen,
+                                                             const gchar        *message);
+
 G_END_DECLS
 
 #endif /* !TERMINAL_WINDOW_H */

@@ -1303,10 +1303,7 @@ terminal_screen_vte_child_exited (VteTerminal    *terminal,
                                   gint            status,
                                   TerminalScreen *screen)
 {
-  GtkWidget *window, *dialog, *content_area, *label, *checkbox;
-  gchar     *message;
-  gint       response;
-  gboolean   show_relaunch_dialog;
+  gboolean show_relaunch_dialog;
 
   terminal_return_if_fail (VTE_IS_TERMINAL (terminal));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
@@ -1317,18 +1314,7 @@ terminal_screen_vte_child_exited (VteTerminal    *terminal,
     gtk_widget_destroy (GTK_WIDGET (screen));
   else if (show_relaunch_dialog)
     {
-      /* create "Relaunch" dialog */
-      window = gtk_widget_get_toplevel (GTK_WIDGET (screen));
-      dialog = gtk_dialog_new_with_buttons (_("Child process exited"),
-                                            GTK_WINDOW (window),
-                                            GTK_DIALOG_DESTROY_WITH_PARENT,
-                                            _("_Relaunch"),
-                                            GTK_RESPONSE_YES,
-                                            NULL);
-      gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_YES);
-
-      content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-      gtk_box_set_spacing (GTK_BOX (content_area), 6);
+      gchar *message;
 
       if (WIFEXITED (status))
         message = g_strdup_printf (_("The child process exited normally with status %d."), WEXITSTATUS (status));
@@ -1337,23 +1323,9 @@ terminal_screen_vte_child_exited (VteTerminal    *terminal,
       else
         message = g_strdup (_("The child process was aborted."));
 
-      label = gtk_label_new (message);
+      terminal_window_show_relaunch_bar (TERMINAL_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (screen))),
+                                         screen, message);
       g_free (message);
-      gtk_container_add (GTK_CONTAINER (content_area), label);
-
-      checkbox = gtk_check_button_new_with_mnemonic (_("Do _not ask me again"));
-      gtk_container_add (GTK_CONTAINER (content_area), checkbox);
-
-      gtk_widget_show_all (dialog);
-      response = gtk_dialog_run (GTK_DIALOG (dialog));
-
-      /* relaunch the process or remember to not show it anymore */
-      if (response == GTK_RESPONSE_YES)
-        terminal_screen_launch_child (screen);
-      else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (checkbox)))
-        g_object_set (G_OBJECT (screen->preferences), "misc-show-relaunch-dialog", FALSE, NULL);
-
-      gtk_widget_destroy (dialog);
     }
 }
 

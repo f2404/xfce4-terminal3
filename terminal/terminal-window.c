@@ -2092,7 +2092,6 @@ static void
 terminal_window_action_set_title (GtkAction      *action,
                                   TerminalWindow *window)
 {
-  AtkObject *object;
   GtkWidget *button;
   GtkWidget *box;
   GtkWidget *label;
@@ -2122,16 +2121,14 @@ terminal_window_action_set_title (GtkAction      *action,
       gtk_box_pack_start (GTK_BOX (box), label, FALSE, TRUE, 0);
 
       entry = gtk_entry_new ();
+      gtk_widget_set_tooltip_text (entry, _("Enter the title for the current terminal tab"));
       gtk_box_pack_start (GTK_BOX (box), entry, TRUE, TRUE, 0);
       gtk_entry_set_activates_default (GTK_ENTRY (entry), TRUE);
       gtk_label_set_mnemonic_widget (GTK_LABEL (label), entry);
       gtk_entry_set_icon_from_icon_name (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, "edit-clear");
+      gtk_entry_set_icon_tooltip_text (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, _("Reset"));
       g_signal_connect (G_OBJECT (entry), "icon-release", G_CALLBACK (title_popover_clear), NULL);
       g_signal_connect (G_OBJECT (entry), "activate", G_CALLBACK (title_popover_close), window);
-
-      /* set Atk description and label relation for the entry */
-      object = gtk_widget_get_accessible (entry);
-      atk_object_set_description (object, _("Enter the title for the current terminal tab"));
 
       g_object_bind_property (G_OBJECT (window->priv->active), "custom-title",
                               G_OBJECT (entry), "text",
@@ -3068,4 +3065,66 @@ G_GNUC_END_IGNORE_DEPRECATIONS
     gtk_widget_hide (window->priv->menubar);
 
   terminal_window_size_pop (window);
+}
+
+
+
+static void
+relaunch_bar_response (GtkInfoBar     *info_bar,
+                       gint            response_id,
+                       TerminalScreen *screen)
+{
+  /* relaunch the process or remember to not show it anymore */
+  if (response_id == GTK_RESPONSE_YES)
+    {
+      terminal_screen_launch_child (screen);
+      terminal_screen_focus (screen);
+    }
+  else
+    {
+      TerminalWindow  *window = TERMINAL_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (screen)));
+      GtkWidget       *content_area = gtk_info_bar_get_content_area (info_bar);
+      GList           *children = gtk_container_get_children (GTK_CONTAINER (content_area));
+      GtkToggleButton *checkbox = g_list_nth_data (children, 1);
+
+      if (G_LIKELY (checkbox != NULL) && GTK_IS_TOGGLE_BUTTON (checkbox) && gtk_toggle_button_get_active (checkbox))
+        g_object_set (terminal_window_get_preferences (window), "misc-show-relaunch-dialog", FALSE, NULL);
+    }
+
+  gtk_widget_destroy (GTK_WIDGET (info_bar));
+}
+
+
+
+/**
+ * terminal_window_show_relaunch_bar:
+ * @window  : A #TerminalWindow.
+ * @screen  : A #TerminalScreen.
+ * status   : Status returned by the child.
+ **/
+void
+terminal_window_show_relaunch_bar (TerminalWindow *window,
+                                   TerminalScreen *screen,
+                                   const gchar    *message)
+{
+  GtkWidget *relaunch_bar, *content_area, *label, *checkbox;
+
+  relaunch_bar = gtk_info_bar_new_with_buttons (_("_Relaunch"), GTK_RESPONSE_YES, NULL);
+  gtk_info_bar_set_message_type (GTK_INFO_BAR (relaunch_bar), GTK_MESSAGE_INFO);
+  gtk_info_bar_set_show_close_button (GTK_INFO_BAR (relaunch_bar), TRUE);
+  content_area = gtk_info_bar_get_content_area (GTK_INFO_BAR (relaunch_bar));
+
+  label = gtk_label_new (message);
+  gtk_container_add (GTK_CONTAINER (content_area), label);
+
+  checkbox = gtk_check_button_new_with_mnemonic (_("Do _not ask me again"));
+  gtk_container_add (GTK_CONTAINER (content_area), checkbox);
+
+  g_signal_connect (G_OBJECT (relaunch_bar), "response", G_CALLBACK (relaunch_bar_response), screen);
+
+  gtk_container_add (GTK_CONTAINER (window->priv->vbox), relaunch_bar);
+  gtk_box_reorder_child (GTK_BOX (window->priv->vbox),
+                         relaunch_bar,
+                         terminal_window_get_toolbar_height (window) == 0 ? 1 : 2);
+  gtk_widget_show_all (relaunch_bar);
 }
