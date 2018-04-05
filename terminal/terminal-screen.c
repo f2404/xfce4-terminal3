@@ -162,13 +162,11 @@ static void       terminal_screen_set_custom_command            (TerminalScreen 
 
 struct _TerminalScreenClass
 {
-  //GtkHBoxClass parent_class;
   GtkOverlayClass parent_class;
 };
 
 struct _TerminalScreen
 {
-  //GtkHBox              parent_instance;
   GtkOverlay           parent_instance;
   TerminalPreferences *preferences;
   TerminalImageLoader *loader;
@@ -205,7 +203,6 @@ static guint screen_last_session_id = 0;
 
 
 
-//G_DEFINE_TYPE (TerminalScreen, terminal_screen, GTK_TYPE_BOX)
 G_DEFINE_TYPE (TerminalScreen, terminal_screen, GTK_TYPE_OVERLAY)
 
 
@@ -322,6 +319,9 @@ terminal_screen_init (TerminalScreen *screen)
   g_signal_connect (G_OBJECT (screen->preferences), "notify",
       G_CALLBACK (terminal_screen_preferences_changed), screen);
 
+  /* show the terminal */
+  gtk_widget_show_all (screen->hbox);
+
   /* apply current settings */
   terminal_screen_update_binding_backspace (screen);
   terminal_screen_update_binding_delete (screen);
@@ -347,10 +347,6 @@ terminal_screen_init (TerminalScreen *screen)
       G_CALLBACK (terminal_screen_vte_window_contents_changed), screen);
   g_signal_connect_swapped (G_OBJECT (screen->terminal), "size-allocate",
       G_CALLBACK (terminal_screen_vte_window_contents_resized), screen);
-
-  /* show the terminal */
-  //gtk_widget_show_all (screen->terminal);
-  gtk_widget_show_all (screen->hbox);
 }
 
 
@@ -1365,15 +1361,14 @@ terminal_screen_vte_child_exited (VteTerminal    *terminal,
         message = g_strdup (_("The child process was aborted."));
 
       label = gtk_label_new (message);
-      gtk_container_add (GTK_CONTAINER (content_area), label);
       g_free (message);
+      gtk_container_add (GTK_CONTAINER (content_area), label);
 
       checkbox = gtk_check_button_new_with_mnemonic (_("Do _not ask me again"));
       gtk_container_add (GTK_CONTAINER (content_area), checkbox);
 
       g_signal_connect (G_OBJECT (relaunch_bar), "response", G_CALLBACK (relaunch_bar_response), screen);
 
-      //terminal_window_show_relaunch_bar (TERMINAL_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (screen))), screen);
       gtk_widget_set_halign (relaunch_bar, GTK_ALIGN_FILL);
       gtk_widget_set_valign (relaunch_bar, GTK_ALIGN_START);
       gtk_overlay_add_overlay (GTK_OVERLAY (screen), relaunch_bar);
