@@ -289,7 +289,6 @@ struct _TerminalWindowPrivate
   GtkAction           *encoding_action;
 
   TerminalScreen      *active;
-  TerminalScreen      *last_closed_active;
 
   /* cached actions to avoid lookups */
   GtkAction           *action_undo_close_tab;
@@ -310,6 +309,9 @@ struct _TerminalWindowPrivate
 
   TerminalVisibility   scrollbar_visibility;
   TerminalZoomLevel    zoom;
+
+  /* if this is a TerminalWindowDropdown */
+  guint                drop_down : 1;
 };
 
 static guint   window_signals[LAST_SIGNAL];
@@ -476,9 +478,9 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     const gchar *p2 = strstr (p1 + 1, "<menuitem action=\"paste\"/>"); // context menu
     const guint length_new = terminal_window_ui_length + 2 * strlen ("<menuitem action=\"copy-html\"/>");
     gchar *ui_new = g_new0 (gchar, length_new + 1);
-    strncpy (ui_new, terminal_window_ui, p1 - terminal_window_ui);
+    memcpy (ui_new, terminal_window_ui, p1 - terminal_window_ui);
     strcat (ui_new, "<menuitem action=\"copy-html\"/>");
-    strncat (ui_new, p1, p2 - p1);
+    memcpy (ui_new + strlen (ui_new), p1, p2 - p1);
     strcat (ui_new, "<menuitem action=\"copy-html\"/>");
     strcat (ui_new, p2);
     gtk_ui_manager_add_ui_from_string (window->priv->ui_manager, ui_new, length_new, NULL);
@@ -606,8 +608,7 @@ terminal_window_finalize (GObject *object)
 
   g_slist_free (window->priv->tabs_menu_actions);
   g_free (window->priv->font);
-  g_queue_foreach (window->priv->closed_tabs_list, (GFunc) terminal_window_tab_info_free, NULL);
-  g_queue_free (window->priv->closed_tabs_list);
+  g_queue_free_full (window->priv->closed_tabs_list, (GDestroyNotify) terminal_window_tab_info_free);
 
   (*G_OBJECT_CLASS (terminal_window_parent_class)->finalize) (object);
 }
@@ -878,17 +879,10 @@ terminal_window_confirm_close (TerminalScreen *screen,
                         NULL);
         }
     }
-  else if (response == GTK_RESPONSE_CLOSE)
-    {
-      if (screen != NULL)
-        gtk_widget_destroy (GTK_WIDGET (screen));
-      else if (window->priv->active != NULL)
-        gtk_widget_destroy (GTK_WIDGET (window->priv->active));
-    }
 
   gtk_widget_destroy (dialog);
 
-  return (response == GTK_RESPONSE_YES);
+  return (response == GTK_RESPONSE_YES || response == GTK_RESPONSE_CLOSE);
 }
 
 
@@ -938,7 +932,7 @@ terminal_window_set_size_force_grid (TerminalWindow *window,
 
   /* required to get the char height/width right */
   if (gtk_widget_get_realized (GTK_WIDGET (screen))
-      && !window->drop_down)
+      && !window->priv->drop_down)
     {
       terminal_screen_force_resize_window (screen, GTK_WINDOW (window),
                                            force_grid_width, force_grid_height);
@@ -990,7 +984,7 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 
       gtk_action_set_sensitive (window->priv->action_copy,
                                 terminal_screen_has_selection (window->priv->active));
-#if VTE_CHECK_VERSION (0, 49,2)
+#if VTE_CHECK_VERSION (0, 49, 2)
       gtk_action_set_sensitive (terminal_window_get_action (window, "copy-html"),
                                 terminal_screen_has_selection (window->priv->active));
 #endif
@@ -1074,11 +1068,6 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
   /* only update when really changed */
   if (G_LIKELY (window->priv->active != active))
     {
-      /* last active tab was closed; used by the undo close action to restore tab focus */
-      if (window->priv->active != NULL &&
-          gtk_notebook_page_num (notebook, GTK_WIDGET (window->priv->active)) == -1)
-        window->priv->last_closed_active = window->priv->active;
-
       /* set new active tab */
       window->priv->active = active;
 
@@ -1117,7 +1106,18 @@ terminal_window_close_tab_request (TerminalScreen *screen,
                                    TerminalWindow *window)
 {
   if (terminal_window_confirm_close (screen, window))
-    gtk_widget_destroy (GTK_WIDGET (screen));
+    {
+      /* store info on the tab being closed */
+      TerminalWindowTabInfo *tab_info = g_new (TerminalWindowTabInfo, 1);
+      tab_info->was_active = (screen == window->priv->active);
+      tab_info->position = gtk_notebook_page_num (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (screen));
+      tab_info->working_directory = g_strdup (terminal_screen_get_working_directory (screen));
+      tab_info->custom_title = IS_STRING (terminal_screen_get_custom_title (screen)) ?
+                               g_strdup (terminal_screen_get_custom_title (screen)) : NULL;
+      g_queue_push_tail (window->priv->closed_tabs_list, tab_info);
+
+      gtk_widget_destroy (GTK_WIDGET (screen));
+    }
 }
 
 
@@ -1160,7 +1160,7 @@ terminal_window_notebook_page_added (GtkNotebook    *notebook,
       /* show the tabs when needed */
       terminal_window_notebook_show_tabs (window);
     }
-  else if (G_UNLIKELY (window->drop_down))
+  else if (G_UNLIKELY (window->priv->drop_down))
     {
       /* try to calculate a decent grid size based on the info we have now */
       terminal_window_dropdown_get_size (TERMINAL_WINDOW_DROPDOWN (window), screen, &w, &h);
@@ -1182,7 +1182,6 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
   GtkWidget             *new_page;
   gint                   new_page_num;
   gint                   npages;
-  TerminalWindowTabInfo *tab_info;
 
   terminal_return_if_fail (TERMINAL_IS_SCREEN (child));
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
@@ -1198,6 +1197,8 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
   g_signal_handlers_disconnect_by_func (G_OBJECT (child),
       terminal_window_update_actions, window);
   g_signal_handlers_disconnect_by_func (G_OBJECT (child),
+      terminal_window_close_tab_request, window);
+  g_signal_handlers_disconnect_by_func (G_OBJECT (child),
       terminal_window_notebook_drag_data_received, window);
 
   /* set tab visibility */
@@ -1208,15 +1209,6 @@ terminal_window_notebook_page_removed (GtkNotebook    *notebook,
       gtk_widget_destroy (GTK_WIDGET (window));
       return;
     }
-
-  /* store info on the tab being closed */
-  tab_info = g_new (TerminalWindowTabInfo, 1);
-  tab_info->was_active = (TERMINAL_SCREEN (child) == window->priv->last_closed_active);
-  tab_info->position = page_num;
-  tab_info->working_directory = g_strdup (terminal_screen_get_working_directory (TERMINAL_SCREEN (child)));
-  tab_info->custom_title = IS_STRING (terminal_screen_get_custom_title (TERMINAL_SCREEN (child))) ?
-                           g_strdup (terminal_screen_get_custom_title (TERMINAL_SCREEN (child))) : NULL;
-  g_queue_push_tail (window->priv->closed_tabs_list, tab_info);
 
   /* show the tabs when needed */
   terminal_window_notebook_show_tabs (window);
@@ -1404,11 +1396,8 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
 {
   GtkWidget  *notebook;
   GtkWidget **screen;
-  GtkWidget  *child, *label, *orig_window;
   gint        i, n_pages;
   gboolean    succeed = FALSE;
-  GtkAllocation allocation;
-  TerminalWindowTabInfo *tab_info;
 
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (widget));
@@ -1427,8 +1416,7 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
 
       /* leave if we dropped in the same screen and there is only one
        * page in the notebook (window will close before we insert) */
-      if (gtk_notebook_get_n_pages (GTK_NOTEBOOK (notebook)) < 2
-          && *screen == widget)
+      if (gtk_notebook_get_n_pages (GTK_NOTEBOOK (notebook)) < 2 && *screen == widget)
         goto leave;
 
       /* figure out where to insert the tab in the notebook */
@@ -1436,8 +1424,9 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
       for (i = 0; i < n_pages; i++)
         {
           /* get the child label */
-          child = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->priv->notebook), i);
-          label = gtk_notebook_get_tab_label (GTK_NOTEBOOK (window->priv->notebook), child);
+          GtkAllocation allocation;
+          GtkWidget *child = gtk_notebook_get_nth_page (GTK_NOTEBOOK (window->priv->notebook), i);
+          GtkWidget *label = gtk_notebook_get_tab_label (GTK_NOTEBOOK (window->priv->notebook), child);
           gtk_widget_get_allocation (label, &allocation);
 
           /* break if we have a matching drop position */
@@ -1469,17 +1458,6 @@ terminal_window_notebook_drag_data_received (GtkWidget        *widget,
           /* release reference */
           g_object_unref (G_OBJECT (*screen));
           g_object_unref (G_OBJECT (window));
-
-          /* erase last closed tabs entry from the original window as we don't want it on DND;
-           * if it's not a window, it means the last tab was dropped here - don't do anything */
-          orig_window = gtk_widget_get_toplevel (notebook);
-          if (TERMINAL_IS_WINDOW (orig_window))
-            {
-              tab_info = g_queue_pop_tail (TERMINAL_WINDOW (orig_window)->priv->closed_tabs_list);
-              terminal_window_tab_info_free (tab_info);
-              /* update actions to make the undo action inactive */
-              terminal_window_update_actions (TERMINAL_WINDOW (orig_window));
-            }
         }
 
       /* looks like everything worked out */
@@ -1500,9 +1478,6 @@ terminal_window_notebook_create_window (GtkNotebook    *notebook,
                                         gint            y,
                                         TerminalWindow *window)
 {
-  TerminalScreen        *screen;
-  TerminalWindowTabInfo *tab_info;
-
   terminal_return_val_if_fail (TERMINAL_IS_WINDOW (window), NULL);
   terminal_return_val_if_fail (TERMINAL_IS_SCREEN (child), NULL);
   terminal_return_val_if_fail (notebook == GTK_NOTEBOOK (window->priv->notebook), NULL);
@@ -1510,25 +1485,19 @@ terminal_window_notebook_create_window (GtkNotebook    *notebook,
   /* only create new window when there are more then 2 tabs (bug #2686) */
   if (gtk_notebook_get_n_pages (notebook) >= 2)
     {
-      /* get the screen */
-      screen = TERMINAL_SCREEN (child);
-
       /* take a reference */
-      g_object_ref (G_OBJECT (screen));
+      g_object_ref (G_OBJECT (child));
 
       /* remove screen from active window */
       gtk_notebook_detach_tab (notebook, child);
 
       /* create new window with the screen */
-      g_signal_emit (G_OBJECT (window), window_signals[NEW_WINDOW_WITH_SCREEN], 0, screen, x, y);
+      g_signal_emit (G_OBJECT (window), window_signals[NEW_WINDOW_WITH_SCREEN], 0, TERMINAL_SCREEN (child), x, y);
 
       /* release our reference */
-      g_object_unref (G_OBJECT (screen));
+      g_object_unref (G_OBJECT (child));
 
-      /* erase last closed tabs entry as we don't want it on detach */
-      tab_info = g_queue_pop_tail (window->priv->closed_tabs_list);
-      terminal_window_tab_info_free (tab_info);
-      /* and update action to make the undo action inactive */
+      /* update actions */
       terminal_window_update_actions (window);
     }
 
@@ -1655,30 +1624,34 @@ terminal_window_action_undo_close_tab (GtkAction      *action,
 {
   TerminalScreen        *terminal;
   TerminalWindowTabInfo *tab_info;
-  gint                   current = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->priv->notebook));
+  GtkWidget             *current = GTK_WIDGET (window->priv->active);
+
+  if (G_UNLIKELY (g_queue_is_empty (window->priv->closed_tabs_list)))
+    return;
 
   terminal = TERMINAL_SCREEN (g_object_new (TERMINAL_TYPE_SCREEN, NULL));
   terminal_window_add (window, terminal);
 
-  if (G_LIKELY (!g_queue_is_empty (window->priv->closed_tabs_list)))
+  /* get info on the last closed tab and remove it from the list */
+  tab_info = g_queue_pop_tail (window->priv->closed_tabs_list);
+
+  /* set info to the new tab */
+  terminal_screen_set_working_directory (terminal, tab_info->working_directory);
+  if (tab_info->custom_title != NULL)
+    terminal_screen_set_custom_title (terminal, tab_info->custom_title);
+  gtk_notebook_reorder_child (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (terminal), tab_info->position);
+
+  /* restore tab focus if the unclosed one wasn't active when it was closed */
+  if (!tab_info->was_active)
     {
-      /* get info on the last closed tab and remove it from the list */
-      tab_info = g_queue_pop_tail (window->priv->closed_tabs_list);
-
-      /* set info to the new tab */
-      terminal_screen_set_working_directory (terminal, tab_info->working_directory);
-      if (tab_info->custom_title != NULL)
-        terminal_screen_set_custom_title (terminal, tab_info->custom_title);
-      gtk_notebook_reorder_child (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (terminal), tab_info->position);
-
-      /* restore tab focus if the unclosed one wasn't active when it was closed */
-      if (!tab_info->was_active)
-        gtk_notebook_set_current_page (GTK_NOTEBOOK (window->priv->notebook), current);
-
-      /* free info */
-      terminal_window_tab_info_free (tab_info);
+      gint page_num = gtk_notebook_page_num (GTK_NOTEBOOK (window->priv->notebook), current);
+      gtk_notebook_set_current_page (GTK_NOTEBOOK (window->priv->notebook), page_num);
     }
 
+  /* free info */
+  terminal_window_tab_info_free (tab_info);
+
+  terminal_window_update_actions (window);
   terminal_screen_launch_child (terminal);
 }
 
@@ -1719,8 +1692,7 @@ terminal_window_action_close_other_tabs (GtkAction      *action,
   /* remove the others */
   npages = gtk_notebook_get_n_pages (notebook);
   for (n = npages - 1; n > 0; n--)
-    if (terminal_window_confirm_close (TERMINAL_SCREEN (gtk_notebook_get_nth_page (notebook, n)), window))
-      gtk_notebook_remove_page (notebook, n);
+    terminal_window_close_tab_request (TERMINAL_SCREEN (gtk_notebook_get_nth_page (notebook, n)), window);
 }
 
 
@@ -1792,7 +1764,7 @@ copy_input_popover_close (GtkWidget      *popover,
                           TerminalWindow *window)
 {
   /* need for hiding on focus */
-  if (window->drop_down)
+  if (window->priv->drop_down)
     terminal_util_activate_window (GTK_WINDOW (window));
 
   /* close the dialog */
@@ -1868,7 +1840,7 @@ terminal_window_action_prefs_died (gpointer  user_data,
   window->priv->preferences_dialog = NULL;
   window->priv->n_child_windows--;
 
-  if (window->drop_down)
+  if (window->priv->drop_down)
     terminal_util_activate_window (GTK_WINDOW (window));
 }
 
@@ -1880,7 +1852,7 @@ terminal_window_action_prefs (GtkAction      *action,
 {
   if (window->priv->preferences_dialog == NULL)
     {
-      window->priv->preferences_dialog = terminal_preferences_dialog_new (window->drop_down);
+      window->priv->preferences_dialog = terminal_preferences_dialog_new (window->priv->drop_down, window->priv->drop_down);
       if (G_LIKELY (window->priv->preferences_dialog != NULL))
         {
           window->priv->n_child_windows++;
@@ -1968,7 +1940,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
           gtk_window_unfullscreen (GTK_WINDOW (window));
 
           /* update drop-down window geometry, otherwise it'll be incorrect */
-          if (window->drop_down)
+          if (window->priv->drop_down)
             terminal_window_dropdown_update_geometry (TERMINAL_WINDOW_DROPDOWN (window));
         }
     }
@@ -2129,7 +2101,7 @@ title_popover_close (GtkWidget      *popover,
   terminal_return_if_fail (window->priv->title_popover != NULL);
 
   /* need for hiding on focus */
-  if (window->drop_down)
+  if (window->priv->drop_down)
     terminal_util_activate_window (GTK_WINDOW (window));
 
   /* close the dialog */
@@ -2270,7 +2242,7 @@ terminal_window_action_search_response (GtkWidget      *dialog,
   else
     {
       /* need for hiding on focus */
-      if (window->drop_down)
+      if (window->priv->drop_down)
         terminal_util_activate_window (GTK_WINDOW (window));
 
       /* hide dialog */
@@ -2631,6 +2603,9 @@ terminal_window_add (TerminalWindow *window,
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
 
+  /* show the terminal screen first: see bug #13263*/
+  gtk_widget_show (GTK_WIDGET (screen));
+
   /* create the tab label */
   label = terminal_screen_get_tab_label (screen);
 
@@ -2654,10 +2629,6 @@ terminal_window_add (TerminalWindow *window,
   /* update screen font from window */
   if (window->priv->font || window->priv->zoom != TERMINAL_ZOOM_LEVEL_DEFAULT)
     terminal_screen_update_font (screen);
-
-  /* show the terminal screen */
-  gtk_widget_realize (GTK_WIDGET (screen));
-  gtk_widget_show (GTK_WIDGET (screen));
 
   /* switch to the new tab */
   gtk_notebook_set_current_page (GTK_NOTEBOOK (window->priv->notebook), page);
@@ -2704,7 +2675,7 @@ terminal_window_notebook_show_tabs (TerminalWindow *window)
   if (npages < 2)
     {
       g_object_get (G_OBJECT (window->priv->preferences),
-                    window->drop_down ? "dropdown-always-show-tabs" :
+                    window->priv->drop_down ? "dropdown-always-show-tabs" :
                     "misc-always-show-tabs", &show_tabs, NULL);
     }
 
@@ -2969,12 +2940,39 @@ terminal_window_get_zoom_level (TerminalWindow *window)
 /**
  * terminal_window_set_zoom_level:
  * @window  : A #TerminalWindow.
+ * @zoom    : Zoom level.
  **/
 void
 terminal_window_set_zoom_level (TerminalWindow    *window,
                                 TerminalZoomLevel  zoom)
 {
   window->priv->zoom = zoom;
+}
+
+
+
+/**
+ * terminal_window_is_drop_down:
+ * @window  : A #TerminalWindow.
+ **/
+gboolean
+terminal_window_is_drop_down (TerminalWindow *window)
+{
+  return window->priv->drop_down != 0;
+}
+
+
+
+/**
+ * terminal_window_set_drop_down:
+ * @window    : A #TerminalWindow.
+ * @drop_down : Whether the window is drop-down.
+ **/
+void
+terminal_window_set_drop_down (TerminalWindow *window,
+                               gboolean        drop_down)
+{
+  window->priv->drop_down = drop_down;
 }
 
 

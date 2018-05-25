@@ -145,14 +145,11 @@ terminal_tab_attr_free (TerminalTabAttr *attr)
 
 
 void
-terminal_options_parse (gint       argc,
-                        gchar    **argv,
-                        gboolean  *show_help,
-                        gboolean  *show_version,
-                        gboolean  *show_colors,
-                        gboolean  *disable_server)
+terminal_options_parse (gint              argc,
+                        gchar           **argv,
+                        TerminalOptions  *options)
 {
-  gint   n;
+  gint n;
 
   for (n = 1; n < argc; ++n)
     {
@@ -165,13 +162,15 @@ terminal_options_parse (gint       argc,
         break;
 
       if (terminal_option_cmp ("help", 'h', argc, argv, &n, NULL))
-        *show_help = TRUE;
+        options->show_help = TRUE;
       else if (terminal_option_cmp ("version", 'V', argc, argv, &n, NULL))
-        *show_version = TRUE;
+        options->show_version = TRUE;
       else if (terminal_option_cmp ("disable-server", 0, argc, argv, &n, NULL))
-        *disable_server = TRUE;
+        options->disable_server = TRUE;
       else if (terminal_option_cmp ("color-table", 0, argc, argv, &n, NULL))
-        *show_colors = TRUE;
+        options->show_colors = TRUE;
+      else if (terminal_option_cmp ("preferences", 0, argc, argv, &n, NULL))
+        options->show_preferences = TRUE;
     }
 }
 
@@ -363,8 +362,8 @@ terminal_window_attr_parse (gint              argc,
           if (G_UNLIKELY (s == NULL))
             {
               g_set_error (error, G_SHELL_ERROR, G_SHELL_ERROR_FAILED,
-                           _("Option \"--color-text\" requires specifying "
-                             "the color as its parameter"));
+                           _("Option \"%s\" requires specifying "
+                             "the color as its parameter"), "--color-text");
               goto failed;
             }
           else if (!gdk_rgba_parse (&color, s))
@@ -382,8 +381,8 @@ terminal_window_attr_parse (gint              argc,
           if (G_UNLIKELY (s == NULL))
             {
               g_set_error (error, G_SHELL_ERROR, G_SHELL_ERROR_FAILED,
-                           _("Option \"--color-bg\" requires specifying "
-                             "the color as its parameter"));
+                           _("Option \"%s\" requires specifying "
+                             "the color as its parameter"), "--color-bg");
               goto failed;
             }
           else if (!gdk_rgba_parse (&color, s))
@@ -666,8 +665,7 @@ terminal_window_attr_free (TerminalWindowAttr *attr)
 {
   terminal_return_if_fail (attr != NULL);
 
-  g_slist_foreach (attr->tabs, (GFunc) terminal_tab_attr_free, NULL);
-  g_slist_free (attr->tabs);
+  g_slist_free_full (attr->tabs, (GDestroyNotify) terminal_tab_attr_free);
   g_free (attr->startup_id);
   g_free (attr->sm_client_id);
   g_free (attr->geometry);

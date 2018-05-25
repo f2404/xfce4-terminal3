@@ -39,6 +39,8 @@
 static void     terminal_preferences_dialog_finalize          (GObject                   *object);
 static void     terminal_preferences_dialog_disc_bindings     (GtkWidget                 *widget,
                                                                TerminalPreferencesDialog *dialog);
+static void     terminal_preferences_dialog_died              (gpointer                   user_data,
+                                                               GObject                   *where_the_object_was);
 static void     terminal_preferences_dialog_response          (GtkWidget                 *widget,
                                                                gint                       response,
                                                                TerminalPreferencesDialog *dialog);
@@ -224,7 +226,7 @@ error:
   /* connect response to dialog */
   object = gtk_builder_get_object (GTK_BUILDER (dialog), "dialog");
   terminal_return_if_fail (G_IS_OBJECT (object));
-  g_object_weak_ref (object, (GWeakNotify) g_object_unref, dialog);
+  g_object_weak_ref (object, (GWeakNotify) terminal_preferences_dialog_died, dialog);
   g_signal_connect (object, "destroy",
       G_CALLBACK (terminal_preferences_dialog_disc_bindings), dialog);
   g_signal_connect (object, "response",
@@ -518,6 +520,15 @@ terminal_preferences_dialog_disc_bindings (GtkWidget                 *widget,
   for (li = dialog->bindings; li != NULL; li = li->next)
     g_object_unref (G_OBJECT (li->data));
   g_slist_free (dialog->bindings);
+}
+
+
+
+static void
+terminal_preferences_dialog_died (gpointer  user_data,
+                                  GObject  *where_the_object_was)
+{
+  g_object_unref (G_OBJECT (user_data));
 }
 
 
@@ -1099,7 +1110,8 @@ terminal_preferences_dialog_encoding_changed (GtkComboBox               *combobo
  * Return value :
  **/
 GtkWidget*
-terminal_preferences_dialog_new (gboolean show_drop_down)
+terminal_preferences_dialog_new (gboolean show_drop_down,
+                                 gboolean drop_down_mode)
 {
   static GtkBuilder *builder = NULL;
 
@@ -1117,24 +1129,24 @@ terminal_preferences_dialog_new (gboolean show_drop_down)
   terminal_return_val_if_fail (GTK_IS_WIDGET (object), NULL);
   gtk_widget_set_visible (GTK_WIDGET (object), show_drop_down);
 
-  if (show_drop_down)
+  /* focus the drop-down tab if in drop-down mode */
+  if (show_drop_down && drop_down_mode)
     {
-      /* focus the drop-down tab if enabled */
       notebook = gtk_builder_get_object (builder, "notebook");
       terminal_return_val_if_fail (GTK_IS_NOTEBOOK (notebook), NULL);
       gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook),
           gtk_notebook_page_num (GTK_NOTEBOOK (notebook), GTK_WIDGET (object)));
+    }
 
-      /* show warning and disable control if WM does not support compositing */
-      if (!gdk_screen_is_composited (gtk_widget_get_screen (GTK_WIDGET (object))))
-        {
-          object = gtk_builder_get_object (builder, "dropdown-opacity-not-available");
-          terminal_return_val_if_fail (G_IS_OBJECT (object), NULL);
-          gtk_widget_set_visible (GTK_WIDGET (object), TRUE);
-          object = gtk_builder_get_object (builder, "scale-opacity");
-          terminal_return_val_if_fail (G_IS_OBJECT (object), NULL);
-          gtk_widget_set_sensitive (GTK_WIDGET (object), FALSE);
-        }
+  /* show warning and disable control if WM does not support compositing */
+  if (show_drop_down && !gdk_screen_is_composited (gtk_widget_get_screen (GTK_WIDGET (object))))
+    {
+      object = gtk_builder_get_object (builder, "dropdown-opacity-not-available");
+      terminal_return_val_if_fail (G_IS_OBJECT (object), NULL);
+      gtk_widget_set_visible (GTK_WIDGET (object), TRUE);
+      object = gtk_builder_get_object (builder, "scale-opacity");
+      terminal_return_val_if_fail (G_IS_OBJECT (object), NULL);
+      gtk_widget_set_sensitive (GTK_WIDGET (object), FALSE);
     }
 
   dialog = gtk_builder_get_object (builder, "dialog");
