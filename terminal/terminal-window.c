@@ -53,15 +53,6 @@
 
 
 
-/* Closed tabs stored info */
-typedef struct
-{
-  gchar   *custom_title;
-  gchar   *working_directory;
-  gint     position;
-  gboolean was_active;
-} TerminalWindowTabInfo;
-
 /* Signal identifiers */
 enum
 {
@@ -228,6 +219,8 @@ static void         terminal_window_action_goto_tab               (GtkRadioActio
                                                                    GtkNotebook            *notebook);
 static void         terminal_window_action_set_title              (GtkAction              *action,
                                                                    TerminalWindow         *window);
+static void         terminal_window_action_set_title_color        (GtkAction              *action,
+                                                                   TerminalWindow         *window);
 static void         terminal_window_action_search                 (GtkAction              *action,
                                                                    TerminalWindow         *window);
 static void         terminal_window_action_search_next            (GtkAction              *action,
@@ -249,7 +242,6 @@ static void         terminal_window_switch_tab                    (GtkNotebook  
                                                                    gboolean                switch_left);
 static void         terminal_window_move_tab                      (GtkNotebook            *notebook,
                                                                    gboolean                move_left);
-static void         terminal_window_tab_info_free                 (TerminalWindowTabInfo  *tab_info);
 static void         terminal_window_toggle_menubar                (GtkWidget              *widget,
                                                                    TerminalWindow         *window);
 static void         terminal_window_menubar_deactivate            (GtkWidget              *widget,
@@ -346,6 +338,7 @@ static const GtkActionEntry action_entries[] =
     { "zoom-reset", "zoom-original", N_ ("_Normal Size"), "<control>0", N_ ("Zoom to default size"), G_CALLBACK (terminal_window_action_zoom_reset), },
   { "terminal-menu", NULL, N_ ("_Terminal"), NULL, NULL, NULL, },
     { "set-title", NULL, N_ ("_Set Title..."), "<control><shift>s", NULL, G_CALLBACK (terminal_window_action_set_title), },
+    { "set-title-color", NULL, N_ ("Set Title Co_lor..."), NULL, NULL, G_CALLBACK (terminal_window_action_set_title_color), },
     { "search", "edit-find", N_ ("_Find..."), "<control><shift>f", N_ ("Search terminal contents"), G_CALLBACK (terminal_window_action_search), },
     { "search-next", NULL, N_ ("Find Ne_xt"), NULL, NULL, G_CALLBACK (terminal_window_action_search_next), },
     { "search-prev", NULL, N_ ("Find Pre_vious"), NULL, NULL, G_CALLBACK (terminal_window_action_search_prev), },
@@ -608,7 +601,7 @@ terminal_window_finalize (GObject *object)
 
   g_slist_free (window->priv->tabs_menu_actions);
   g_free (window->priv->font);
-  g_queue_free_full (window->priv->closed_tabs_list, (GDestroyNotify) terminal_window_tab_info_free);
+  g_queue_free_full (window->priv->closed_tabs_list, (GDestroyNotify) terminal_tab_attr_free);
 
   (*G_OBJECT_CLASS (terminal_window_parent_class)->finalize) (object);
 }
@@ -1107,14 +1100,21 @@ terminal_window_close_tab_request (TerminalScreen *screen,
 {
   if (terminal_window_confirm_close (screen, window))
     {
-      /* store info on the tab being closed */
-      TerminalWindowTabInfo *tab_info = g_new (TerminalWindowTabInfo, 1);
-      tab_info->was_active = (screen == window->priv->active);
-      tab_info->position = gtk_notebook_page_num (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (screen));
-      tab_info->working_directory = g_strdup (terminal_screen_get_working_directory (screen));
-      tab_info->custom_title = IS_STRING (terminal_screen_get_custom_title (screen)) ?
-                               g_strdup (terminal_screen_get_custom_title (screen)) : NULL;
-      g_queue_push_tail (window->priv->closed_tabs_list, tab_info);
+      /* store attrs of the tab being closed */
+      TerminalTabAttr *tab_attr = g_slice_new0 (TerminalTabAttr);
+      tab_attr->active = (screen == window->priv->active);
+      tab_attr->dynamic_title_mode = TERMINAL_TITLE_DEFAULT;
+      tab_attr->position = gtk_notebook_page_num (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (screen));
+      tab_attr->directory = g_strdup (terminal_screen_get_working_directory (screen));
+      tab_attr->title = IS_STRING (terminal_screen_get_custom_title (screen)) ?
+                        g_strdup (terminal_screen_get_custom_title (screen)) : NULL;
+      tab_attr->color_text = IS_STRING (terminal_screen_get_custom_fg_color (screen)) ?
+                             g_strdup (terminal_screen_get_custom_fg_color (screen)) : NULL;
+      tab_attr->color_bg = IS_STRING (terminal_screen_get_custom_bg_color (screen)) ?
+                           g_strdup (terminal_screen_get_custom_bg_color (screen)) : NULL;
+      tab_attr->color_title = IS_STRING (terminal_screen_get_custom_title_color (screen)) ?
+                              g_strdup (terminal_screen_get_custom_title_color (screen)) : NULL;
+      g_queue_push_tail (window->priv->closed_tabs_list, tab_attr);
 
       gtk_widget_destroy (GTK_WIDGET (screen));
     }
@@ -1622,34 +1622,35 @@ static void
 terminal_window_action_undo_close_tab (GtkAction      *action,
                                        TerminalWindow *window)
 {
-  TerminalScreen        *terminal;
-  TerminalWindowTabInfo *tab_info;
-  GtkWidget             *current = GTK_WIDGET (window->priv->active);
+  TerminalScreen  *terminal;
+  TerminalTabAttr *tab_attr;
+  GtkWidget       *current = GTK_WIDGET (window->priv->active);
 
   if (G_UNLIKELY (g_queue_is_empty (window->priv->closed_tabs_list)))
     return;
 
-  terminal = TERMINAL_SCREEN (g_object_new (TERMINAL_TYPE_SCREEN, NULL));
+  /* get info on the last closed tab and remove it from the list */
+  tab_attr = g_queue_pop_tail (window->priv->closed_tabs_list);
+
+  terminal = terminal_screen_new (tab_attr, window->priv->grid_width, window->priv->grid_height);
   terminal_window_add (window, terminal);
 
-  /* get info on the last closed tab and remove it from the list */
-  tab_info = g_queue_pop_tail (window->priv->closed_tabs_list);
+  /* restore tab title color */
+  if (tab_attr->color_title != NULL)
+    terminal_screen_set_custom_title_color (terminal, tab_attr->color_title);
 
-  /* set info to the new tab */
-  terminal_screen_set_working_directory (terminal, tab_info->working_directory);
-  if (tab_info->custom_title != NULL)
-    terminal_screen_set_custom_title (terminal, tab_info->custom_title);
-  gtk_notebook_reorder_child (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (terminal), tab_info->position);
+  /* restore tab position */
+  gtk_notebook_reorder_child (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (terminal), tab_attr->position);
 
   /* restore tab focus if the unclosed one wasn't active when it was closed */
-  if (!tab_info->was_active)
+  if (!tab_attr->active)
     {
       gint page_num = gtk_notebook_page_num (GTK_NOTEBOOK (window->priv->notebook), current);
       gtk_notebook_set_current_page (GTK_NOTEBOOK (window->priv->notebook), page_num);
     }
 
   /* free info */
-  terminal_window_tab_info_free (tab_info);
+  terminal_tab_attr_free (tab_attr);
 
   terminal_window_update_actions (window);
   terminal_screen_launch_child (terminal);
@@ -2203,6 +2204,28 @@ terminal_window_action_set_title (GtkAction      *action,
 
 
 static void
+terminal_window_action_set_title_color (GtkAction      *action,
+                                        TerminalWindow *window)
+{
+  GdkRGBA    color;
+  gchar     *color_string;
+  GtkWidget *dialog = gtk_color_chooser_dialog_new (_("Choose title color"), GTK_WINDOW (window));
+  int        response = gtk_dialog_run (GTK_DIALOG (dialog));
+
+  if (response == GTK_RESPONSE_OK)
+    {
+      gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog), &color);
+      color_string = gdk_rgba_to_string (&color);
+      terminal_screen_set_custom_title_color (window->priv->active, color_string);
+      g_free (color_string);
+    }
+
+  gtk_widget_destroy (dialog);
+}
+
+
+
+static void
 terminal_window_action_search_response (GtkWidget      *dialog,
                                         gint            response_id,
                                         TerminalWindow *window)
@@ -2477,16 +2500,6 @@ terminal_window_move_tab (GtkNotebook *notebook,
   else
     gtk_notebook_reorder_child (notebook, page,
                                 page_num == last_page ? 0 : page_num + 1);
-}
-
-
-
-static void
-terminal_window_tab_info_free (TerminalWindowTabInfo *tab_info)
-{
-  g_free (tab_info->custom_title);
-  g_free (tab_info->working_directory);
-  g_free (tab_info);
 }
 
 
