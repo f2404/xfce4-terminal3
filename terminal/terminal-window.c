@@ -101,6 +101,8 @@ static gboolean     terminal_window_scroll_event                  (GtkWidget    
                                                                    GdkEventScroll         *event);
 static gboolean     terminal_window_map_event                     (GtkWidget              *widget,
                                                                    GdkEventAny            *event);
+static gboolean     terminal_window_focus_in_event                (GtkWidget              *widget,
+                                                                   GdkEventFocus          *event);
 static gboolean     terminal_window_confirm_close                 (TerminalScreen         *screen,
                                                                    TerminalWindow         *window);
 static void         terminal_window_size_push                     (TerminalWindow         *window);
@@ -281,6 +283,7 @@ struct _TerminalWindowPrivate
   GtkAction           *encoding_action;
 
   TerminalScreen      *active;
+  TerminalScreen      *last_active;
 
   /* cached actions to avoid lookups */
   GtkAction           *action_undo_close_tab;
@@ -387,6 +390,7 @@ terminal_window_class_init (TerminalWindowClass *klass)
   gtkwidget_class->style_set = terminal_window_style_set;
   gtkwidget_class->scroll_event = terminal_window_scroll_event;
   gtkwidget_class->map_event = terminal_window_map_event;
+  gtkwidget_class->focus_in_event = terminal_window_focus_in_event;
 
   /**
    * TerminalWindow::new-window
@@ -740,6 +744,20 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 
 
 static gboolean
+terminal_window_focus_in_event (GtkWidget     *widget,
+                                GdkEventFocus *event)
+{
+  TerminalWindow *window = TERMINAL_WINDOW (widget);
+
+  /* reset activity indicator for the active tab when focusing window */
+  terminal_screen_reset_activity (window->priv->active);
+
+  return (*GTK_WIDGET_CLASS (terminal_window_parent_class)->focus_in_event) (widget, event);
+}
+
+
+
+static gboolean
 terminal_window_confirm_close (TerminalScreen *screen,
                                TerminalWindow *window)
 {
@@ -1061,7 +1079,8 @@ terminal_window_notebook_page_switched (GtkNotebook     *notebook,
   /* only update when really changed */
   if (G_LIKELY (window->priv->active != active))
     {
-      /* set new active tab */
+      /* store last and set new active tab */
+      window->priv->last_active = window->priv->active;
       window->priv->active = active;
 
       /* set the new window title */
@@ -1100,11 +1119,12 @@ terminal_window_close_tab_request (TerminalScreen *screen,
 {
   if (terminal_window_confirm_close (screen, window))
     {
+      GtkNotebook *notebook = GTK_NOTEBOOK (window->priv->notebook);
+
       /* store attrs of the tab being closed */
-      TerminalTabAttr *tab_attr = g_slice_new0 (TerminalTabAttr);
+      TerminalTabAttr *tab_attr = terminal_tab_attr_new ();
       tab_attr->active = (screen == window->priv->active);
-      tab_attr->dynamic_title_mode = TERMINAL_TITLE_DEFAULT;
-      tab_attr->position = gtk_notebook_page_num (GTK_NOTEBOOK (window->priv->notebook), GTK_WIDGET (screen));
+      tab_attr->position = gtk_notebook_page_num (notebook, GTK_WIDGET (screen));
       tab_attr->directory = g_strdup (terminal_screen_get_working_directory (screen));
       tab_attr->title = IS_STRING (terminal_screen_get_custom_title (screen)) ?
                         g_strdup (terminal_screen_get_custom_title (screen)) : NULL;
@@ -1115,6 +1135,13 @@ terminal_window_close_tab_request (TerminalScreen *screen,
       tab_attr->color_title = IS_STRING (terminal_screen_get_custom_title_color (screen)) ?
                               g_strdup (terminal_screen_get_custom_title_color (screen)) : NULL;
       g_queue_push_tail (window->priv->closed_tabs_list, tab_attr);
+
+      /* switch to the previously active tab */
+      if (screen == window->priv->active && window->priv->last_active != NULL)
+        {
+          gint page_num = gtk_notebook_page_num (notebook, GTK_WIDGET (window->priv->last_active));
+          gtk_notebook_set_current_page (notebook, page_num);
+        }
 
       gtk_widget_destroy (GTK_WIDGET (screen));
     }
