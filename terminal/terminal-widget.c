@@ -351,7 +351,6 @@ terminal_widget_context_menu (TerminalWidget *widget,
   gtk_menu_set_screen (GTK_MENU (menu), gtk_widget_get_screen (GTK_WIDGET (widget)));
 
   /* run our custom main loop */
-  gtk_grab_add (menu);
 #if GTK_CHECK_VERSION (3, 22, 0)
   gtk_menu_popup_at_pointer (GTK_MENU (menu), NULL);
 #else
@@ -360,7 +359,6 @@ terminal_widget_context_menu (TerminalWidget *widget,
 #endif
   g_main_loop_run (loop);
   g_main_loop_unref (loop);
-  gtk_grab_remove (menu);
 
   /* remove the additional items (if any) */
   if (item_separator != NULL) gtk_widget_destroy (item_separator);
@@ -586,8 +584,8 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
       break;
 
     case TARGET_GTK_NOTEBOOK_TAB:
-      /* 'send' the drag to the parent widget (TerminalScreen) */
-      screen = gtk_widget_get_parent (widget);
+      /* 'send' the drag to the parent's parent widget (TerminalWidget -> GtkBox -> TerminalScreen) */
+      screen = gtk_widget_get_parent (gtk_widget_get_parent (widget));
       if (G_LIKELY (screen))
         {
           g_signal_emit_by_name (G_OBJECT (screen), "drag-data-received", context,
@@ -749,6 +747,13 @@ terminal_widget_update_highlight_urls (TerminalWidget *widget)
           regex = vte_regex_new_for_match (pattern->pattern, -1,
                                            PCRE2_CASELESS | PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_MULTILINE,
                                            &error);
+
+          if (error == NULL && (!vte_regex_jit (regex, PCRE2_JIT_COMPLETE, &error) ||
+                                !vte_regex_jit (regex, PCRE2_JIT_PARTIAL_SOFT, &error)))
+            {
+              g_critical ("Failed to JIT regular expression '%s': %s\n", pattern->pattern, error->message);
+              g_clear_error (&error);
+            }
 #else
           regex = g_regex_new (pattern->pattern,
                                G_REGEX_CASELESS | G_REGEX_OPTIMIZE | G_REGEX_MULTILINE,

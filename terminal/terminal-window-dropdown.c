@@ -579,31 +579,16 @@ static gboolean
 terminal_window_dropdown_can_grab (gpointer data)
 {
   GdkWindow    *window = gtk_widget_get_window (GTK_WIDGET (data));
-  GdkGrabStatus status;
-
-#if GTK_CHECK_VERSION (3, 20, 0)
-  GdkDisplay   *display = gdk_window_get_display (window);
-  GdkSeat      *seat = gdk_display_get_default_seat (display);
-
-  /* cannot grab seat for a window that isn't visible */
-  if (!gdk_window_is_visible (window))
-    return FALSE;
-
-  status = gdk_seat_grab (seat, window,
-                          GDK_SEAT_CAPABILITY_POINTER | GDK_SEAT_CAPABILITY_KEYBOARD,
-                          FALSE, NULL, NULL, NULL, NULL);
-#else
-  status = gdk_keyboard_grab (window, FALSE, GDK_CURRENT_TIME);
-#endif
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  GdkGrabStatus status = gdk_keyboard_grab (window, FALSE, GDK_CURRENT_TIME);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
   if (status == GDK_GRAB_SUCCESS)
     {
       /* drop the grab */
-#if GTK_CHECK_VERSION (3, 20, 0)
-      gdk_seat_ungrab (seat);
-#else
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       gdk_keyboard_ungrab (GDK_CURRENT_TIME);
-#endif
+G_GNUC_END_IGNORE_DEPRECATIONS
       return FALSE;
     }
 
