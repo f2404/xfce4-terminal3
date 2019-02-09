@@ -1136,8 +1136,14 @@ terminal_screen_update_colors (TerminalScreen *screen)
   /* bold color */
   if (!bold_use_default)
     bold_use_default = !terminal_preferences_get_color (screen->preferences, "color-bold", &bold);
+#if VTE_CHECK_VERSION (0, 52, 0)
+  /* the meaning of NULL for bold color changed in vte 0.52: see bug #15019 */
+  vte_terminal_set_color_bold (VTE_TERMINAL (screen->terminal), bold_use_default ? NULL : &bold);
+#else
+  /* avoid computed bold color for older vte versions */
   if (!bold_use_default || has_fg)
     vte_terminal_set_color_bold (VTE_TERMINAL (screen->terminal), bold_use_default ? &fg : &bold);
+#endif
 
 #if VTE_CHECK_VERSION (0, 51, 3)
   /* "bold-is-bright" supported since vte 0.51.3 */
@@ -1335,7 +1341,7 @@ relaunch_bar_response (GtkInfoBar     *info_bar,
       GList           *children = gtk_container_get_children (GTK_CONTAINER (content_area));
       GtkToggleButton *checkbox = g_list_nth_data (children, 1);
 
-      if (G_LIKELY (checkbox != NULL) && GTK_IS_TOGGLE_BUTTON (checkbox) && gtk_toggle_button_get_active (checkbox))
+      if (GTK_IS_TOGGLE_BUTTON (checkbox) && gtk_toggle_button_get_active (checkbox))
         g_object_set (G_OBJECT (screen->preferences), "misc-show-relaunch-dialog", FALSE, NULL);
     }
 
@@ -1811,7 +1817,7 @@ terminal_screen_launch_child (TerminalScreen *screen)
   gchar       **argv;
   gchar       **env;
   gchar       **argv2;
-  guint         i;
+  guint         i, argc;
   VtePtyFlags   pty_flags = VTE_PTY_DEFAULT;
   GSpawnFlags   spawn_flags = G_SPAWN_CHILD_INHERITS_STDIN | G_SPAWN_SEARCH_PATH;
 
@@ -1833,7 +1839,8 @@ terminal_screen_launch_child (TerminalScreen *screen)
     {
       env = terminal_screen_get_child_environment (screen);
 
-      argv2 = g_new0 (gchar *, g_strv_length (argv) + 2);
+      argc = argv != NULL ? g_strv_length (argv) : 0;
+      argv2 = g_new0 (gchar *, argc + 2);
       argv2[0] = command;
 
       if (argv != NULL)

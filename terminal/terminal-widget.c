@@ -293,7 +293,7 @@ terminal_widget_context_menu (TerminalWidget *widget,
       /* prepend a separator to the menu if it does not already contain one */
       children = gtk_container_get_children (GTK_CONTAINER (menu));
       item_separator = g_list_nth_data (children, 0);
-      if (G_LIKELY (item_separator != NULL && !GTK_IS_SEPARATOR_MENU_ITEM (item_separator)))
+      if (!GTK_IS_SEPARATOR_MENU_ITEM (item_separator))
         {
           item_separator = gtk_separator_menu_item_new ();
           gtk_menu_shell_prepend (GTK_MENU_SHELL (menu), item_separator);
@@ -472,7 +472,7 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
       text = (gchar *) gtk_selection_data_get_text (selection_data);
       if (G_LIKELY (text != NULL))
         {
-          if (G_LIKELY (IS_STRING (text)))
+          if (G_LIKELY (*text != '\0'))
             vte_terminal_feed_child (VTE_TERMINAL (widget), text, strlen (text));
           g_free (text);
         }
@@ -516,6 +516,7 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
             {
               vte_terminal_feed_child (VTE_TERMINAL (widget), str->str, str->len);
             }
+          vte_terminal_feed_child (VTE_TERMINAL (widget), " ", 1);
           g_string_free (str, TRUE);
         }
       break;
@@ -551,6 +552,7 @@ terminal_widget_drag_data_received (GtkWidget        *widget,
 
           text = g_strjoinv (" ", uris);
           vte_terminal_feed_child (VTE_TERMINAL (widget), text, strlen (text));
+          vte_terminal_feed_child (VTE_TERMINAL (widget), " ", 1);
           g_strfreev (uris);
           g_free (text);
         }
