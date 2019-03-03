@@ -26,8 +26,6 @@ void terminal_util_show_about_dialog  (GtkWindow    *parent);
 
 void terminal_util_activate_window    (GtkWindow    *window);
 
-gchar* terminal_util_get_wm_name      (GtkWindow *window);
-
 G_END_DECLS
 
 #endif /* !TERMINAL_UTIL_H */

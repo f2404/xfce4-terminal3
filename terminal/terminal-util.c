@@ -143,39 +143,3 @@ terminal_util_activate_window (GtkWindow *window)
   gtk_window_present (window);
 #endif
 }
-
-
-
-gchar*
-terminal_util_get_wm_name (GtkWindow *window)
-{
-#ifdef GDK_WINDOWING_X11
-  Window     *sup_window = NULL;
-  gchar      *wm_name = NULL;
-  GdkDisplay *disp = gdk_x11_get_default_xdisplay ();
-
-  if (!GDK_IS_X11_WINDOW (window))
-    return NULL;
-
-  //if (! (sup_window = (Window *) get_property (disp, DefaultRootWindow (disp), XA_WINDOW, "_NET_SUPPORTING_WM_CHECK", NULL)))
-    //{
-      //if (! (sup_window = (Window *) get_property (disp, DefaultRootWindow (disp), XA_CARDINAL, "_WIN_SUPPORTING_WM_CHECK", NULL)))
-        //{
-          //return NULL;
-        //}
-    //}
-
-  /* WM_NAME */
-  //if (! (wm_name = get_property (disp, *sup_window, XInternAtom (disp, "UTF8_STRING", False), "_NET_WM_NAME", NULL)))
-    //{
-      //name_is_utf8 = FALSE;
-      //if (! (wm_name = get_property (disp, *sup_window, XA_STRING, "_NET_WM_NAME", NULL))) {
-          //p_verbose("Cannot get name of the window manager (_NET_WM_NAME).\n");
-      //}
-    //}
-  //name_out = get_output_str(wm_name, name_is_utf8);
-#else
-  /* impossible to determine the name */
-  return NULL;
-#endif
-}
