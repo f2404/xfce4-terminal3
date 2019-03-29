@@ -44,6 +44,7 @@
 #include <sys/wait.h>
 
 #include <libxfce4ui/libxfce4ui.h>
+#include <xfconf/xfconf.h>
 
 #include <terminal/terminal-util.h>
 #include <terminal/terminal-enum-types.h>
@@ -319,6 +320,8 @@ terminal_screen_init (TerminalScreen *screen)
       G_CALLBACK (terminal_screen_vte_resize_window), screen);
   g_signal_connect (G_OBJECT (screen->terminal), "draw",
       G_CALLBACK (terminal_screen_draw), screen);
+  g_signal_connect_swapped (G_OBJECT (screen->terminal), "paste-selection-request",
+      G_CALLBACK (terminal_screen_paste_primary), screen);
   gtk_box_pack_start (GTK_BOX (screen->hbox), screen->terminal, TRUE, TRUE, 0);
 
   screen->scrollbar = gtk_scrollbar_new (GTK_ORIENTATION_VERTICAL,
@@ -1806,8 +1809,6 @@ terminal_screen_unsafe_paste_dialog_new (TerminalScreen *screen,
 
   gtk_text_buffer_set_text (buffer, text, -1);
 
-  gtk_window_set_focus (GTK_WINDOW (dialog), tv);
-
   return dialog;
 }
 
@@ -1820,6 +1821,8 @@ terminal_screen_paste_unsafe_text (TerminalScreen *screen,
   GtkWidget *dialog = terminal_screen_unsafe_paste_dialog_new (screen, text);
 
   gtk_widget_show_all (dialog);
+  /* set focus to the Paste button */
+  gtk_widget_grab_focus (gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_YES));
 
   if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_YES)
     {
@@ -2806,10 +2809,11 @@ terminal_screen_update_font (TerminalScreen *screen)
 {
   GtkWidget            *toplevel = gtk_widget_get_toplevel (GTK_WIDGET (screen));
   gboolean              font_use_system, font_allow_bold;
-  gchar                *font_name;
+  gchar                *font_name = NULL;
   PangoFontDescription *font_desc;
   glong                 grid_w = 0, grid_h = 0;
   GSettings            *settings;
+  XfconfChannel        *channel;
 #if VTE_CHECK_VERSION (0, 51, 3)
   gdouble cell_width_scale, cell_height_scale;
 #endif
@@ -2825,9 +2829,21 @@ terminal_screen_update_font (TerminalScreen *screen)
 
   if (font_use_system)
     {
-      settings = g_settings_new ("org.gnome.desktop.interface");
-      font_name = g_settings_get_string (settings, "monospace-font-name");
-      g_object_unref (settings);
+      /* read Xfce settings */
+      xfconf_init (NULL);
+      channel = xfconf_channel_get ("xsettings");
+      if (xfconf_channel_has_property (channel, "/Gtk/MonospaceFontName"))
+        font_name = xfconf_channel_get_string (channel, "/Gtk/MonospaceFontName", "");
+      xfconf_shutdown ();
+
+      /* if font isn't set, read GNOME settings */
+      if (!IS_STRING (font_name))
+        {
+          g_free (font_name);
+          settings = g_settings_new ("org.gnome.desktop.interface");
+          font_name = g_settings_get_string (settings, "monospace-font-name");
+          g_object_unref (settings);
+        }
     }
   else
     g_object_get (G_OBJECT (screen->preferences), "font-name", &font_name, NULL);

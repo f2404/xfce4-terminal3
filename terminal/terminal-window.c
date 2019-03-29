@@ -96,6 +96,17 @@ const gchar *CSS_SLIM_TABS =
 "  padding: 1px;\n"
 "}\n";
 
+/* See gnome-terminal bug #789356 */
+#if GTK_CHECK_VERSION (3, 22, 23)
+#define WINDOW_STATE_TILED (GDK_WINDOW_STATE_TILED       | \
+                            GDK_WINDOW_STATE_LEFT_TILED  | \
+                            GDK_WINDOW_STATE_RIGHT_TILED | \
+                            GDK_WINDOW_STATE_TOP_TILED   | \
+                            GDK_WINDOW_STATE_BOTTOM_TILED)
+#else
+#define WINDOW_STATE_TILED (GDK_WINDOW_STATE_TILED)
+#endif
+
 
 
 static void         terminal_window_finalize                      (GObject             *object);
@@ -223,6 +234,8 @@ static void         terminal_window_action_prev_tab               (GtkAction    
                                                                    TerminalWindow      *window);
 static void         terminal_window_action_next_tab               (GtkAction           *action,
                                                                    TerminalWindow      *window);
+static void         terminal_window_action_last_active_tab        (GtkAction           *action,
+                                                                   TerminalWindow      *window);
 static void         terminal_window_action_move_tab_left          (GtkAction           *action,
                                                                    TerminalWindow      *window);
 static void         terminal_window_action_move_tab_right         (GtkAction           *action,
@@ -303,6 +316,7 @@ struct _TerminalWindowPrivate
   GtkAction           *action_close_other_tabs;
   GtkAction           *action_prev_tab;
   GtkAction           *action_next_tab;
+  GtkAction           *action_last_active_tab;
   GtkAction           *action_move_tab_left;
   GtkAction           *action_move_tab_right;
   GtkAction           *action_copy;
@@ -316,6 +330,8 @@ struct _TerminalWindowPrivate
 
   TerminalVisibility   scrollbar_visibility;
   TerminalZoomLevel    zoom;
+
+  GSList              *tab_key_accels;
 
   /* if this is a TerminalWindowDropdown */
   guint                drop_down : 1;
@@ -363,6 +379,7 @@ static const GtkActionEntry action_entries[] =
   { "tabs-menu", NULL, N_ ("T_abs"), NULL, NULL, NULL, },
     { "prev-tab", "go-previous", N_ ("_Previous Tab"), "<control>Page_Up", N_ ("Switch to previous tab"), G_CALLBACK (terminal_window_action_prev_tab), },
     { "next-tab", "go-next", N_ ("_Next Tab"), "<control>Page_Down", N_ ("Switch to next tab"), G_CALLBACK (terminal_window_action_next_tab), },
+    { "last-active-tab", NULL, N_ ("Last _Active Tab"), NULL, N_ ("Switch to last active tab"), G_CALLBACK (terminal_window_action_last_active_tab), },
     { "move-tab-left", NULL, N_ ("Move Tab _Left"), "<control><shift>Page_Up", NULL, G_CALLBACK (terminal_window_action_move_tab_left), },
     { "move-tab-right", NULL, N_ ("Move Tab _Right"), "<control><shift>Page_Down", NULL, G_CALLBACK (terminal_window_action_move_tab_right), },
   { "help-menu", NULL, N_ ("_Help"), NULL, NULL, NULL, },
@@ -571,6 +588,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
   window->priv->action_close_other_tabs = terminal_window_get_action (window, "close-other-tabs");
   window->priv->action_prev_tab = terminal_window_get_action (window, "prev-tab");
   window->priv->action_next_tab = terminal_window_get_action (window, "next-tab");
+  window->priv->action_last_active_tab = terminal_window_get_action (window, "last-active-tab");
   window->priv->action_move_tab_left = terminal_window_get_action (window, "move-tab-left");
   window->priv->action_move_tab_right = terminal_window_get_action (window, "move-tab-right");
   window->priv->action_copy = terminal_window_get_action (window, "copy");
@@ -778,21 +796,41 @@ terminal_window_key_press_event (GtkWidget   *widget,
 {
   TerminalWindow *window = TERMINAL_WINDOW (widget);
   const guint     modifiers = event->state & gtk_accelerator_get_default_mod_mask ();
-  gboolean        use_tab;
 
-  /* whether to use Ctrl+Tab/Ctrl+Shift+Tab as Next/Prev Tab shortcuts, respectively */
-  g_object_get (G_OBJECT (window->priv->preferences), "misc-use-tab-key-to-cycle-tabs", &use_tab, NULL);
+  /* support shortcuts that contain the Tab key
+     Tab sometimes becomes ISO_Left_Tab (e.g. in Ctrl+Shift+Tab) so check both here */
+  if (G_UNLIKELY (window->priv->tab_key_accels != NULL
+                  && (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_ISO_Left_Tab)))
+    {
+      GSList *lp;
+      for (lp = window->priv->tab_key_accels; lp != NULL; lp = lp->next)
+        {
+          TerminalAccel *accel = lp->data;
+          if (accel->mods == modifiers)
+            {
+              GtkAction *action = terminal_window_get_action (window, accel->path);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+              if (G_LIKELY (GTK_IS_ACTION (action)))
+                {
+                  gtk_action_activate (action);
+                  return TRUE;
+                }
+G_GNUC_END_IGNORE_DEPRECATIONS
+            }
+        }
+    }
 
-  if (G_UNLIKELY (use_tab && (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_ISO_Left_Tab)))
+  /* handle Ctrl+Shift+Ins (paste clipboard) and Shift+Ins (paste selection) */
+  if (event->keyval == GDK_KEY_Insert || event->keyval == GDK_KEY_KP_Insert)
     {
       if (modifiers == (GDK_CONTROL_MASK | GDK_SHIFT_MASK))
         {
-          terminal_window_action_prev_tab (NULL, window);
+          terminal_window_action_paste (NULL, window);
           return TRUE;
         }
-      else if (modifiers == GDK_CONTROL_MASK)
+      else if (modifiers == GDK_SHIFT_MASK)
         {
-          terminal_window_action_next_tab (NULL, window);
+          terminal_window_action_paste_selection (NULL, window);
           return TRUE;
         }
     }
@@ -987,12 +1025,16 @@ terminal_window_set_size_force_grid (TerminalWindow *window,
                                      glong           force_grid_width,
                                      glong           force_grid_height)
 {
+  GdkWindow *gdk_window = gtk_widget_get_window (GTK_WIDGET (window));
+
   terminal_return_if_fail (TERMINAL_IS_WINDOW (window));
   terminal_return_if_fail (TERMINAL_IS_SCREEN (screen));
 
   /* required to get the char height/width right */
   if (gtk_widget_get_realized (GTK_WIDGET (screen))
-      && !window->priv->drop_down)
+      && gdk_window != NULL
+      && (gdk_window_get_state (gdk_window) & (GDK_WINDOW_STATE_FULLSCREEN | WINDOW_STATE_TILED)) == 0
+      && !window->priv->drop_down )
     {
       terminal_screen_force_resize_window (screen, GTK_WINDOW (window),
                                            force_grid_width, force_grid_height);
@@ -1041,6 +1083,7 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       gtk_action_set_sensitive (window->priv->action_move_tab_left, can_go_left);
       gtk_action_set_sensitive (window->priv->action_next_tab, can_go_right);
       gtk_action_set_sensitive (window->priv->action_move_tab_right, can_go_right);
+      gtk_action_set_sensitive (window->priv->action_last_active_tab, window->priv->last_active != NULL);
 
       gtk_action_set_sensitive (window->priv->action_copy,
                                 terminal_screen_has_selection (window->priv->active));
@@ -2096,6 +2139,21 @@ terminal_window_action_next_tab (GtkAction      *action,
 {
   terminal_window_switch_tab (GTK_NOTEBOOK (window->priv->notebook), FALSE);
   terminal_window_update_actions (window);
+}
+
+
+
+static void
+terminal_window_action_last_active_tab (GtkAction      *action,
+                                        TerminalWindow *window)
+{
+  if (window->priv->last_active != NULL)
+    {
+      GtkNotebook *notebook = GTK_NOTEBOOK (window->priv->notebook);
+      gint page_num = gtk_notebook_page_num (notebook, GTK_WIDGET (window->priv->last_active));
+      gtk_notebook_set_current_page (notebook, page_num);
+      terminal_window_update_actions (window);
+    }
 }
 
 
@@ -3249,4 +3307,18 @@ G_GNUC_END_IGNORE_DEPRECATIONS
     gtk_widget_hide (window->priv->menubar);
 
   terminal_window_size_pop (window);
+}
+
+
+
+/**
+ * terminal_window_action_show_menubar:
+ * @window          : A #TerminalWindow.
+ * @tab_key_accels  : A list of Tab key accelerators.
+ **/
+void
+terminal_window_update_tab_key_accels (TerminalWindow *window,
+                                       GSList         *tab_key_accels)
+{
+  window->priv->tab_key_accels = tab_key_accels;
 }
